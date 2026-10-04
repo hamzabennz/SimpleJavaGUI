@@ -21,12 +21,33 @@ data class Detection(val x1: Double, val y1: Double, val x2: Double, val y2: Dou
  * and scale_boxes back to the input image. The model is the bot's best.pt exported to ONNX
  * with dynamic input size (see tools/export_models.sh).
  */
-class Yolo(modelBytes: ByteArray, private val numThreads: Int = 4) : AutoCloseable {
+class Yolo(modelBytes: ByteArray, numThreads: Int = 4, useXnnpack: Boolean = false) : AutoCloseable {
     private val env = OrtEnvironment.getEnvironment()
-    private val session: OrtSession = env.createSession(modelBytes, OrtSession.SessionOptions().apply {
-        setIntraOpNumThreads(numThreads)
-        setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
-    })
+    /** True when the XNNPACK (ARM-optimised) execution provider is active. */
+    var accelerated = false
+        private set
+
+    private val session: OrtSession = createSession(modelBytes, numThreads, useXnnpack)
+
+    private fun createSession(bytes: ByteArray, threads: Int, xnnpack: Boolean): OrtSession {
+        if (xnnpack) {
+            try {
+                val opts = OrtSession.SessionOptions().apply {
+                    setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
+                    // XNNPACK runs its own thread pool; ORT's pool then only needs one thread.
+                    addXnnpack(mapOf("intra_op_num_threads" to threads.toString()))
+                    setIntraOpNumThreads(1)
+                }
+                return env.createSession(bytes, opts).also { accelerated = true }
+            } catch (e: Exception) {
+                // Provider not available in this ONNX Runtime build: fall back to the default CPU provider.
+            }
+        }
+        return env.createSession(bytes, OrtSession.SessionOptions().apply {
+            setIntraOpNumThreads(threads)
+            setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
+        })
+    }
     private val inputName = session.inputNames.first()
 
     var confThres = 0.25

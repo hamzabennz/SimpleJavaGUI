@@ -33,6 +33,11 @@ class Settings(context: Context) {
         get() = prefs.getInt("gaPopulation", 50)
         set(v) = prefs.edit().putInt("gaPopulation", v).apply()
 
+    /** Auto mode only shoots when the bot's white-pixel turn check says it is your turn. */
+    var useTurnCheck: Boolean
+        get() = prefs.getBoolean("useTurnCheck", true)
+        set(v) = prefs.edit().putBoolean("useTurnCheck", v).apply()
+
     var showDetections: Boolean
         get() = prefs.getBoolean("showDetections", true)
         set(v) = prefs.edit().putBoolean("showDetections", v).apply()

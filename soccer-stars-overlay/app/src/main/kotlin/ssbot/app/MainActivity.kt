@@ -86,12 +86,25 @@ class MainActivity : Activity() {
             v.toFloatOrNull()?.takeIf { it in 0.05f..10f }?.let { settings.dragScale = it }
         })
 
+        root.addView(android.widget.CheckBox(this).apply {
+            text = "Auto mode: only shoot when the bot's turn check says it's your turn (untick if Auto never shoots)"
+            isChecked = settings.useTurnCheck
+            setOnCheckedChangeListener { _, c -> settings.useTurnCheck = c }
+        })
+
         root.addView(header("4. Run"))
         root.addView(button("Start overlay") { start() })
         root.addView(button("Stop overlay") { OverlayService.stop(this) })
         root.addView(text(
-            "After starting, choose \"Entire screen\" when Android asks what to share, then open the game. " +
-                "Use the floating panel to switch mode, force an analysis, re-detect the pitch, or stop.\n\n" +
+            "After starting, choose \"Entire screen\" when Android asks what to share, then open the game.\n\n" +
+                "How it works: whenever the pieces stop moving the overlay reads the board (blue boxes = your " +
+                "pieces, pink = opponent, cyan = ball).\n" +
+                "• Predict: start aiming – the cyan line shows where the ball will go, a light-blue ring marks a goal.\n" +
+                "• Suggest: the violet ring marks the best piece, the arrow the shot direction; drag that piece " +
+                "back to the small violet dot.\n" +
+                "• Auto: the app plays that shot for you.\n" +
+                "Floating panel: tap the title to fold it, drag it to move. Mode = switch mode, Analyze = read " +
+                "the board now, Re-init = new match/table, Draw = hide boxes, Stop.\n\n" +
                 "Note: automated play in online matches against other people may break the game's terms of " +
                 "service. Prefer offline/friend matches for Auto mode.", 13f,
         ))

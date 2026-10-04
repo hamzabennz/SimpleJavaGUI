@@ -13,6 +13,7 @@ import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc
 import org.opencv.objdetect.Objdetect
 import ssbot.core.Rect
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -118,9 +119,15 @@ object Vision {
      * save_element_screenshot: find the strongest Hough circle inside the given region and
      * crop it as a template (round-tripped through JPEG like the bot's cv2.imwrite).
      * [scale] adapts the limits (minDist 20, radius 10..37 px on the reference window) to this screen;
-     * [maxRadius] overrides the upper radius limit.
+     * [maxRadius] overrides the upper radius limit; [preferRadius] picks the circle closest to that radius.
      */
-    fun captureCircleTemplate(bgr: Mat, region: CvRect, scale: Double, maxRadius: Int = (37 * scale).roundToInt()): Pair<Mat, Int>? {
+    fun captureCircleTemplate(
+        bgr: Mat,
+        region: CvRect,
+        scale: Double,
+        maxRadius: Int = (37 * scale).roundToInt(),
+        preferRadius: Double = 0.0,
+    ): Pair<Mat, Int>? {
         val r = clip(region, bgr.cols(), bgr.rows()) ?: return null
         val crop = bgr.submat(r)
         val gray = Mat()
@@ -132,7 +139,16 @@ object Vision {
         )
         gray.release()
         if (circles.empty()) return null
-        val c = circles.get(0, 0)
+        // The bot takes circles[0]. On its reference window that is always a piece face (r = 23);
+        // newer game versions add a glow ring / visible piece base, which Hough may rank first.
+        // Prefer the circle closest to the face radius (circles[0] whenever it already is).
+        var c = circles.get(0, 0)
+        if (preferRadius > 0) {
+            for (i in 1 until circles.cols()) {
+                val o = circles.get(0, i)
+                if (abs(o[2] - preferRadius) < abs(c[2] - preferRadius) - 1.0) c = o
+            }
+        }
         circles.release()
         val x = Math.rint(c[0]).toInt()
         val y = Math.rint(c[1]).toInt()

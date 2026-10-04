@@ -112,6 +112,7 @@ class OverlayService : Service() {
                         }
                     }
                 }
+                panel?.setStatus(if (engine!!.accelerated) "Ready (ARM-accelerated) – open the game" else "Ready – open the game")
                 workerHandler.post(loop)
             } catch (t: Throwable) {
                 Log.e(TAG, "init failed", t)
@@ -178,7 +179,6 @@ class OverlayService : Service() {
             },
             onStop = { stopSelf() },
         )
-        p.setOnModeChanged { engine?.reinitRequested = true }
         p.params = ControlPanel.layoutParams(type).apply {
             if (Build.VERSION.SDK_INT >= 28) layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
             y = (resources.displayMetrics.heightPixels * 0.18).toInt()
@@ -237,7 +237,7 @@ class OverlayService : Service() {
                     val model = engine!!.process(frame)
                     frame.release()
                     overlay?.model = model
-                    panel?.setStatus(model.status)
+                    panel?.setStatus(listOf(model.hint, model.status).filter { it.isNotEmpty() }.joinToString("\n"))
                 }
             } catch (t: Throwable) {
                 Log.e(TAG, "frame failed", t)
@@ -299,7 +299,7 @@ class OverlayService : Service() {
         private const val TAG = "StarsBot"
         private const val CHANNEL = "overlay"
         private const val NOTIFICATION_ID = 1
-        private const val FRAME_INTERVAL_MS = 150L
+        private const val FRAME_INTERVAL_MS = 80L
         const val ACTION_STOP = "ssbot.app.STOP"
         const val EXTRA_RESULT_CODE = "resultCode"
         const val EXTRA_DATA = "data"

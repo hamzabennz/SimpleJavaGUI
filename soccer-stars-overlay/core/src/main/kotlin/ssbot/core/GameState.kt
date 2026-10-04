@@ -52,30 +52,39 @@ data class SimParameters(
 }
 
 /**
- * The bot's physics parameters were fitted on a 1071x621 BlueStacks window whose
- * playground was (116, 142, 797, 461). To keep the simulation identical on any
- * screen, detected positions are mapped into that reference frame before simulating
- * and mapped back for drawing / gestures.
+ * The bot ran on a 1071x621 BlueStacks window whose pitch was at (116, 142, 797, 461); its
+ * physics parameters, goal templates, Hough limits and arrow force scale all assume that size.
+ * Each phone frame is therefore scaled and shifted into that "reference window" before the
+ * bot's pipeline runs on it: ref = screen * s + o. Results are mapped back for drawing/swiping.
  */
-class RefFrame(val screenPlayground: Rect, val refPlayground: Rect = REFERENCE_PLAYGROUND) {
-    val sx = refPlayground.w / screenPlayground.w
-    val sy = refPlayground.h / screenPlayground.h
-
-    fun toRef(p: Point) = Point(refPlayground.x + (p.x - screenPlayground.x) * sx, refPlayground.y + (p.y - screenPlayground.y) * sy)
-    fun toRef(r: Rect) = Rect(refPlayground.x + (r.x - screenPlayground.x) * sx, refPlayground.y + (r.y - screenPlayground.y) * sy, r.w * sx, r.h * sy)
-    fun toScreen(p: Point) = Point(screenPlayground.x + (p.x - refPlayground.x) / sx, screenPlayground.y + (p.y - refPlayground.y) / sy)
+class RefFrame(val sx: Double, val sy: Double, val ox: Double, val oy: Double) {
+    fun toRef(p: Point) = Point(p.x * sx + ox, p.y * sy + oy)
+    fun toScreen(p: Point) = Point((p.x - ox) / sx, (p.y - oy) / sy)
+    fun toScreen(r: Rect) = Rect((r.x - ox) / sx, (r.y - oy) / sy, r.w / sx, r.h / sy)
     fun vecToRef(dx: Double, dy: Double) = Point(dx * sx, dy * sy)
     fun vecToScreen(dx: Double, dy: Double) = Point(dx / sx, dy / sy)
 
-    /** Average screen-pixels-per-reference-pixel, for radii. */
-    val screenPerRef get() = 2.0 / (sx + sy)
-
-    fun toRef(state: GameState) = GameState(
-        state.players.map(::toRef), state.opponents.map(::toRef), toRef(state.ball),
-        toRef(state.playerGoal), toRef(state.opponentGoal), refPlayground,
-    )
+    val isIdentity get() = sx == 1.0 && sy == 1.0 && ox == 0.0 && oy == 0.0
 
     companion object {
         val REFERENCE_PLAYGROUND = Rect(116.0, 142.0, 797.0, 461.0)
+        const val WINDOW_W = 1071
+        const val WINDOW_H = 621
+
+        /**
+         * Frame that puts [screenPlayground] onto the reference pitch. [scaledW]/[scaledH] are the
+         * integer sizes the screen is resized to, so the scale is exact; the shift is rounded to
+         * whole pixels so the resized image can be pasted without resampling again.
+         */
+        fun forPlayground(screenPlayground: Rect, screenW: Int, screenH: Int): RefFrame {
+            val ref = REFERENCE_PLAYGROUND
+            val scaledW = Math.round(screenW * ref.w / screenPlayground.w).toInt()
+            val scaledH = Math.round(screenH * ref.h / screenPlayground.h).toInt()
+            val sx = scaledW.toDouble() / screenW
+            val sy = scaledH.toDouble() / screenH
+            val ox = Math.round(ref.x - screenPlayground.x * sx).toDouble()
+            val oy = Math.round(ref.y - screenPlayground.y * sy).toDouble()
+            return RefFrame(sx, sy, ox, oy)
+        }
     }
 }

@@ -67,7 +67,8 @@ class VisionParityTest {
         assertEquals(List(4) { ogl.getDouble(it) }, a.opponentGoal!!.let { listOf(it.x, it.y, it.w, it.h) })
         assertEquals(ref.getBoolean("turn"), a.isPlayersTurn(img))
 
-        val st = assertNotNull(a.detectState(img))
+        val win = a.normalize(img)
+        val st = assertNotNull(a.detectState(win))
         println("players  kotlin=${st.screen.players} python=${ref.getJSONArray("players")}")
         println("opponents kotlin=${st.screen.opponents} python=${ref.getJSONArray("opponents")}")
         val rp = ref.getJSONArray("players")
@@ -79,7 +80,7 @@ class VisionParityTest {
         assertEquals(ref.getJSONArray("opponents").length(), st.screen.opponents.size)
 
         val arrowRef = ref.getJSONObject("arrow")
-        val reading = assertNotNull(a.readArrow(img))
+        val reading = assertNotNull(a.readArrow(win))
         println("arrow kotlin=$reading python=$arrowRef")
         assertEquals(arrowRef.getDouble("angle"), reading.angleDeg, 1e-9)
         assertEquals(arrowRef.getDouble("length"), reading.length, 1e-9)
@@ -98,9 +99,10 @@ class VisionParityTest {
         val img = load("soccer_stars.png")
         val a = analyzer()
         a.initialize(img)
-        println("1080p playground=${a.playground} goalsFromTemplates=${a.goalsFromTemplates} playerGoal=${a.playerGoal} opponentGoal=${a.opponentGoal}")
-        assertTrue(a.isPlayersTurn(img))
-        val st = assertNotNull(a.detectState(img))
+        println("1080p screen playground=${a.screenPlayground} window playground=${a.playground} goalsFromTemplates=${a.goalsFromTemplates} playerGoal=${a.playerGoal} opponentGoal=${a.opponentGoal}")
+        assertTrue(a.isPlayersTurn(img), "turn")
+        val win = a.normalize(img)
+        val st = assertNotNull(a.detectState(win))
         println("1080p players=${st.screen.players}\n      opponents=${st.screen.opponents}\n      ball=${st.screen.ball}")
         println("      ref players=${st.ref.players.map { "(%.0f, %.0f)".format(it.x, it.y) }}")
         assertEquals(5, st.screen.players.size)
@@ -111,5 +113,17 @@ class VisionParityTest {
         val s = a.chooseAction(st, pool, onIteration = { i, b -> if (i % 10 == 0) println("  iter $i best $b") })
         println("GA took %.1f s -> %s goal=%s drag %s -> %s".format((System.nanoTime() - t0) / 1e9, s.action, s.prediction.playerGoal, s.dragStart, s.dragEnd))
         pool.shutdown()
+
+        // Board watcher: an unchanged frame is "still" and nothing moved; covering a piece is a move.
+        val w = ssbot.core.vision.BoardWatcher()
+        w.settle(win, a.playground!!); w.settle(win, a.playground!!)
+        assertEquals(1, w.stillFrames)
+        w.capture(win, st)
+        assertTrue(!w.moved(win, null), "unchanged")
+        val changed = win.clone()
+        val p0 = st.ref.players[0]
+        Imgproc.circle(changed, org.opencv.core.Point(p0.x, p0.y), 25, org.opencv.core.Scalar(40.0, 140.0, 60.0), -1)
+        assertTrue(w.moved(changed, null), "covered")
+        assertTrue(!w.moved(changed, org.opencv.core.Rect(p0.x.toInt() - 30, p0.y.toInt() - 30, 60, 60)))
     }
 }
