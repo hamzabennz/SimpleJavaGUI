@@ -65,7 +65,8 @@ class VisionParityTest {
         assertTrue(a.goalsFromTemplates)
         assertEquals(List(4) { pgl.getDouble(it) }, a.playerGoal!!.let { listOf(it.x, it.y, it.w, it.h) })
         assertEquals(List(4) { ogl.getDouble(it) }, a.opponentGoal!!.let { listOf(it.x, it.y, it.w, it.h) })
-        assertEquals(ref.getBoolean("turn"), a.isPlayersTurn(img))
+        assertEquals(ref.getBoolean("turn"), a.isPlayersTurnOriginal(img))
+        assertEquals(true, a.whoseTurn(img))
 
         val win = a.normalize(img)
         val st = assertNotNull(a.detectState(win))
@@ -95,12 +96,26 @@ class VisionParityTest {
     }
 
     @Test
+    fun turnFromNames() {
+        for ((name, pg) in listOf("angle.png" to Rect(116.0, 142.0, 797.0, 461.0), "soccer_stars.png" to Rect(220.0, 191.0, 1480.0, 858.0))) {
+            val img = load(name)
+            assertEquals(true, ssbot.core.vision.Vision.namesTurn(img, pg), "$name: your turn")
+            // Mirror the screen: now the bright name is on the right, i.e. the opponent's turn.
+            val flipped = Mat()
+            org.opencv.core.Core.flip(img, flipped, 1)
+            val fpg = Rect(img.cols() - pg.x - pg.w, pg.y, pg.w, pg.h)
+            assertEquals(false, ssbot.core.vision.Vision.namesTurn(flipped, fpg), "$name mirrored: opponent's turn")
+        }
+    }
+
+    @Test
     fun fullHdScreenshotWorks() {
         val img = load("soccer_stars.png")
         val a = analyzer()
         a.initialize(img)
         println("1080p screen playground=${a.screenPlayground} window playground=${a.playground} goalsFromTemplates=${a.goalsFromTemplates} playerGoal=${a.playerGoal} opponentGoal=${a.opponentGoal}")
-        assertTrue(a.isPlayersTurn(img), "turn")
+        assertTrue(a.isPlayersTurnOriginal(img), "turn")
+        assertEquals(true, a.whoseTurn(img))
         val win = a.normalize(img)
         val st = assertNotNull(a.detectState(win))
         println("1080p players=${st.screen.players}\n      opponents=${st.screen.opponents}\n      ball=${st.screen.ball}")

@@ -51,6 +51,7 @@ class OverlayService : Service() {
     private var overlay: OverlayView? = null
     private var panel: ControlPanel? = null
     @Volatile private var running = false
+    @Volatile private var reportRequested = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -177,6 +178,7 @@ class OverlayService : Service() {
                 settings.showDetections = !settings.showDetections
                 ov.invalidate()
             },
+            onReport = { reportRequested = true },
             onStop = { stopSelf() },
         )
         p.params = ControlPanel.layoutParams(type).apply {
@@ -235,6 +237,10 @@ class OverlayService : Service() {
                 val frame = grabFrame()
                 if (frame != null) {
                     val model = engine!!.process(frame)
+                    if (reportRequested) {
+                        reportRequested = false
+                        saveReport(frame, model)
+                    }
                     frame.release()
                     overlay?.model = model
                     panel?.setStatus(listOf(model.hint, model.status).filter { it.isNotEmpty() }.joinToString("\n"))
@@ -275,6 +281,56 @@ class OverlayService : Service() {
             return bgr
         } finally {
             image.close()
+        }
+    }
+
+    /**
+     * "Report" button: saves what the app saw (the captured frame, overlay included) and what it
+     * detected to Download/StarsBot, so problems can be shared exactly.
+     */
+    @android.annotation.TargetApi(29)
+    private fun saveReport(frame: Mat, model: OverlayModel) {
+        if (Build.VERSION.SDK_INT < 29) {
+            main.post { Toast.makeText(this, "Report needs Android 10+", Toast.LENGTH_SHORT).show() }
+            return
+        }
+        val stamp = java.text.SimpleDateFormat("yyyyMMdd-HHmmss", java.util.Locale.US).format(java.util.Date())
+        val png = org.opencv.core.MatOfByte()
+        org.opencv.imgcodecs.Imgcodecs.imencode(".png", frame, png)
+        val info = buildString {
+            appendLine("mode=${settings.mode} frame=${frame.cols()}x${frame.rows()} device=${Build.MANUFACTURER} ${Build.MODEL} android=${Build.VERSION.RELEASE}")
+            appendLine("status=${model.status}")
+            appendLine("hint=${model.hint}")
+            appendLine("playground=${model.playground} playerGoal=${model.playerGoal} opponentGoal=${model.opponentGoal}")
+            model.turn?.let { t ->
+                appendLine("players=${t.screen.players}")
+                appendLine("opponents=${t.screen.opponents}")
+                appendLine("ball=${t.screen.ball}")
+                appendLine("refPlayers=${t.ref.players}")
+                appendLine("refBall=${t.ref.ball}")
+            }
+            model.arrowPrediction?.let { appendLine("aim angle=${it.angleRef} force=${it.forceRef} piece=${it.playerIndex + 1} goal=${it.playerGoal} ownGoal=${it.opponentGoal}") }
+            model.suggestion?.let { appendLine("suggestion=${it.action} drag ${it.dragStart} -> ${it.dragEnd}") }
+        }
+        try {
+            fun save(name: String, mime: String, bytes: ByteArray) {
+                val values = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, name)
+                    put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mime)
+                    put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, "Download/StarsBot")
+                }
+                val uri = contentResolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                    ?: error("cannot create $name")
+                contentResolver.openOutputStream(uri)!!.use { it.write(bytes) }
+            }
+            save("report-$stamp.png", "image/png", png.toArray())
+            save("report-$stamp.txt", "text/plain", info.toByteArray())
+            main.post { Toast.makeText(this, "Saved to Download/StarsBot (report-$stamp)", Toast.LENGTH_LONG).show() }
+        } catch (t: Throwable) {
+            Log.e(TAG, "report failed", t)
+            main.post { Toast.makeText(this, "Report failed: ${t.message}", Toast.LENGTH_LONG).show() }
+        } finally {
+            png.release()
         }
     }
 

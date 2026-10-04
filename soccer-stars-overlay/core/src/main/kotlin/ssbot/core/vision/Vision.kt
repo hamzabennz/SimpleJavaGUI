@@ -116,6 +116,36 @@ object Vision {
     }
 
     /**
+     * Turn check that compares the two player names above the pitch: the side to move has its
+     * name in bright white, the other in grey. Returns true (you, left), false (opponent, right)
+     * or null when it cannot tell (e.g. a dialog covers the bar).
+     * More robust than the bot's "any pure white pixel" check, which also fires on banners.
+     */
+    fun namesTurn(bgr: Mat, playground: Rect): Boolean? {
+        val y0 = (playground.y * 0.45).toInt()
+        val y1 = playground.y.toInt()
+        val w3 = (playground.w / 3).toInt()
+        if (y1 - y0 < 4 || w3 < 4) return null
+        val left = clip(CvRect(playground.x.toInt(), y0, w3, y1 - y0), bgr.cols(), bgr.rows()) ?: return null
+        val right = clip(CvRect((playground.x + playground.w).toInt() - w3, y0, w3, y1 - y0), bgr.cols(), bgr.rows()) ?: return null
+        fun bright(r: CvRect): Int {
+            val gray = Mat()
+            Imgproc.cvtColor(bgr.submat(r), gray, Imgproc.COLOR_BGR2GRAY)
+            val m = Mat()
+            Core.inRange(gray, Scalar(245.0), Scalar(255.0), m)
+            return Core.countNonZero(m).also { gray.release(); m.release() }
+        }
+        val l = bright(left)
+        val r = bright(right)
+        val min = max(8, (left.area() * 0.0008).toInt())
+        return when {
+            l >= min && l > 2 * r -> true
+            r >= min && r > 2 * l -> false
+            else -> null
+        }
+    }
+
+    /**
      * save_element_screenshot: find the strongest Hough circle inside the given region and
      * crop it as a template (round-tripped through JPEG like the bot's cv2.imwrite).
      * [scale] adapts the limits (minDist 20, radius 10..37 px on the reference window) to this screen;

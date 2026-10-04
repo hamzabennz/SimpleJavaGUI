@@ -25,6 +25,7 @@ class ControlPanel(
     private val onAnalyze: () -> Unit,
     private val onReinit: () -> Unit,
     private val onToggleDrawings: () -> Unit,
+    private val onReport: () -> Unit,
     private val onStop: () -> Unit,
 ) : LinearLayout(context) {
     private val density = resources.displayMetrics.density
@@ -67,6 +68,7 @@ class ControlPanel(
         body.addView(button("Analyze") { onAnalyze() })
         body.addView(button("Re-init") { onReinit() })
         body.addView(button("Draw") { onToggleDrawings() })
+        body.addView(button("Report") { onReport() })
         body.addView(button("Stop") { onStop() })
         addView(body)
 

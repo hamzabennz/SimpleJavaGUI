@@ -153,7 +153,11 @@ class GameAnalyzer(
         return CvRect(pg.x.toInt(), 0, pg.w.toInt() / 3, screen.rows() / 4)
     }
 
-    fun isPlayersTurn(screen: Mat) = Vision.isPlayersTurn(screen, turnArea(screen))
+    /** The bot's original check: any pure-white pixel in the top-left area. */
+    fun isPlayersTurnOriginal(screen: Mat) = Vision.isPlayersTurn(screen, turnArea(screen))
+
+    /** Name-brightness turn check (see Vision.namesTurn); null when undecided. */
+    fun whoseTurn(screen: Mat): Boolean? = screenPlayground?.let { Vision.namesTurn(screen, it) }
 
     /** Pieces and ball on the reference window [win] (from [normalize]). */
     fun detectState(win: Mat): TurnState? {

@@ -64,6 +64,7 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
     @Volatile private var gaProgress = ""
     private var shotDone = false
     private var lastMode = settings.mode
+    private var lastTurn: Boolean? = null
 
     @Volatile var reinitRequested = false
     @Volatile var analyzeRequested = false
@@ -115,7 +116,8 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
 
         val win = analyzer.normalize(screen)
         try {
-            val myTurn = analyzer.isPlayersTurn(screen)
+            analyzer.whoseTurn(screen)?.let { lastTurn = it }
+            val myTurn = lastTurn == true
             val arrow = analyzer.readArrow(win)
             watcher.settle(win, analyzer.playground!!)
 
@@ -156,7 +158,7 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
             }
             val status = buildString {
                 append("${st.screen.players.size} vs ${st.screen.opponents.size}")
-                append(if (myTurn) " · turn: you" else " · turn: opponent?")
+                append(" · turn: " + when (lastTurn) { true -> "you"; false -> "opponent"; null -> "?" })
                 if (prediction != null) {
                     append(" · aim ${"%.0f".format(prediction.angleRef)}° force ${prediction.forceRef.toInt()}")
                     if (prediction.playerGoal) append(" · GOAL!")
