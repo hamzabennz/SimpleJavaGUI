@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Stars Bot Overlay</string>
+    <string name="gesture_service_label">Stars Bot Overlay – auto shot</string>
+    <string name="gesture_service_description">Lets the overlay perform the chosen shot (a single swipe from your piece) when Auto mode is on. It does not read any screen content.</string>
+</resources>
