@@ -7,6 +7,7 @@ import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
 import ssbot.core.ai.ChooseAction
 import ssbot.core.ai.Chromosome
+import ssbot.core.ai.MAX_STEPS
 import ssbot.core.physics.Environment
 import ssbot.core.physics.Trajectories
 import ssbot.core.vision.ArrowDetector
@@ -70,6 +71,12 @@ class GameAnalyzer(
     var params: SimParameters = SimParameters.REPORT_3,
 ) {
     private val arrowDetector = ArrowDetector(arrowModel)
+
+    /**
+     * Simulate shots until everything stops instead of the bot's fixed 500 steps (4.2 s).
+     * Off by default so the parity tests compare against the original exactly.
+     */
+    var untilRest = false
 
     /** Screen <-> reference window mapping. */
     var frame: RefFrame? = null; private set
@@ -193,21 +200,25 @@ class GameAnalyzer(
     fun predictArrow(state: TurnState, arrow: ArrowReading): Prediction {
         val env = Environment(state.ref, params).simulate()
         val idx = env.findClosestShape(arrow.tail)
-        Environment.shoot(env.playersShapes[idx], arrow.angleDeg, arrow.force.toDouble())
+        env.shootScaled(env.playersShapes[idx], arrow.angleDeg, arrow.force.toDouble())
         return finish(env, idx, arrow.angleDeg, arrow.force.toDouble())
     }
+
+    /** Index of your piece the arrow belongs to (the one closest to the arrow tail). */
+    fun closestPlayer(state: TurnState, arrow: ArrowReading): Int =
+        Environment(state.ref, params).simulate().findClosestShape(arrow.tail)
 
     fun simulate(state: TurnState, playerIndex: Int, angle: Double, force: Double, roundInputs: Boolean): Prediction {
         val env = Environment(state.ref, params).simulate()
         val a = if (roundInputs) Math.rint(angle) else angle
         val fo = if (roundInputs) Math.rint(force) else force
-        Environment.shoot(env.playersShapes[playerIndex], a, fo)
+        env.shootScaled(env.playersShapes[playerIndex], a, fo)
         return finish(env, playerIndex, angle, force)
     }
 
     private fun finish(env: Environment, idx: Int, angle: Double, force: Double): Prediction {
         val f = frame!!
-        val paths = env.run(500, 1.0 / 120, record = 5)!!
+        val paths = if (untilRest) env.run(MAX_STEPS, 1.0 / 120, record = 5, untilRest = true)!! else env.run(500, 1.0 / 120, record = 5)!!
         val toScreen = { l: List<Point> -> l.map(f::toScreen) }
         return Prediction(
             idx, angle, force,
@@ -228,7 +239,7 @@ class GameAnalyzer(
         val f = frame!!
         val ca = ChooseAction(
             nIter, populationSize, 0.9, 0.5, 10.0, 10000.0, state.ref, params,
-            executor = executor, onIteration = onIteration, isCancelled = isCancelled,
+            executor = executor, onIteration = onIteration, isCancelled = isCancelled, untilRest = untilRest,
         )
         val best = ca.search()
         val pred = simulate(state, best.playerId - 1, best.angle, best.force, roundInputs = true)

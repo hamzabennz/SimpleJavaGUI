@@ -184,6 +184,12 @@ class Space {
     var collisionBias = (1.0 - 0.1).pow(60.0)
     var collisionPersistence = 3
 
+    /** cpSpace damping: fraction of velocity kept per second (1 = none, as in the bot). */
+    var damping = 1.0
+
+    /** True when every dynamic body is (almost) at rest. */
+    fun isAtRest(speed: Double = 1.0): Boolean = bodies.all { it.vx * it.vx + it.vy * it.vy < speed * speed }
+
     val staticBody = Body.static()
 
     private val bodies = ArrayList<Body>()
@@ -252,11 +258,12 @@ class Space {
         for (arb in arbiters) preStep(arb, dt, slop, biasCoef)
         for (c in constraints) c.preStep(dt)
 
-        // Integrate velocities: damping 1, gravity 0, no forces -> v = v*1 + 0*dt.
+        // Integrate velocities: no gravity or forces; v = v * damping^dt (damping 1 in the bot).
+        val damp = damping.pow(dt)
         for (body in bodies) {
-            body.vx = body.vx * 1.0 + 0.0 * dt
-            body.vy = body.vy * 1.0 + 0.0 * dt
-            body.w = body.w * 1.0 + 0.0 * dt
+            body.vx = body.vx * damp + 0.0 * dt
+            body.vy = body.vy * damp + 0.0 * dt
+            body.w = body.w * damp + 0.0 * dt
         }
 
         val dtCoef = if (prevDt == 0.0) 0.0 else dt / prevDt

@@ -92,6 +92,11 @@ class MainActivity : Activity() {
             setOnCheckedChangeListener { _, c -> settings.useTurnCheck = c }
         })
 
+        root.addView(button("Reset learned physics (Calibrate) to the bot's original") {
+            settings.physics = null
+            Toast.makeText(this, "Physics reset – applies next time the overlay starts", Toast.LENGTH_LONG).show()
+        })
+
         root.addView(header("4. Run"))
         root.addView(button("Start overlay") { start() })
         root.addView(button("Stop overlay") { OverlayService.stop(this) })
@@ -104,7 +109,10 @@ class MainActivity : Activity() {
                 "back to the small violet dot.\n" +
                 "• Auto: the app plays that shot for you.\n" +
                 "Floating panel: tap the title to fold it, drag it to move. Mode = switch mode, Analyze = read " +
-                "the board now, Re-init = new match/table, Draw = hide boxes, Stop.\n\n" +
+                "the board now, Re-init = new match/table, Draw = hide boxes, Report = save what the app sees, Stop.\n\n" +
+                "Accuracy: every shot you aim is recorded (\"shots recorded\" on the panel) and the panel shows how " +
+                "far the last prediction was off. After 5–10 shots tap Calibrate: the app fits its physics to your " +
+                "real shots and predictions get much closer.\n\n" +
                 "Note: automated play in online matches against other people may break the game's terms of " +
                 "service. Prefer offline/friend matches for Auto mode.", 13f,
         ))

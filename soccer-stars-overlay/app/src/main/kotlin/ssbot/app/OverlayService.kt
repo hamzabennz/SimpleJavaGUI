@@ -179,6 +179,7 @@ class OverlayService : Service() {
                 ov.invalidate()
             },
             onReport = { reportRequested = true },
+            onCalibrate = { engine?.calibrateRequested = true },
             onStop = { stopSelf() },
         )
         p.params = ControlPanel.layoutParams(type).apply {

@@ -36,7 +36,16 @@ data class SimParameters(
     val wallsThickness: Double,
     val wallsElasticity: Double,
     val maxForce: Double,
+    /** Velocity kept per second (cpSpace damping). The bot used none (1.0). */
+    val damping: Double = 1.0,
+    /** Impulse per unit of the bot's force (arrow length x 100). The bot used 1.0. */
+    val forceScale: Double = 1.0,
 ) {
+    fun toList() = listOf(
+        playerRadius, playerMass, playerElasticity, ballRadius, ballMass, ballElasticity,
+        wallsThickness, wallsElasticity, maxForce, damping, forceScale,
+    )
+
     companion object {
         /** `util.get_environment_parameters(3)` – the set main.py loads. */
         val REPORT_3 = SimParameters(
@@ -47,6 +56,7 @@ data class SimParameters(
 
         fun parse(values: List<Double>) = SimParameters(
             values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8],
+            values.getOrElse(9) { 1.0 }, values.getOrElse(10) { 1.0 },
         )
     }
 }

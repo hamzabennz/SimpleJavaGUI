@@ -20,6 +20,7 @@ class Environment(val state: GameState, private val p: SimParameters) {
 
     /** `Environment.simulate()` – builds the space (ball, walls, teams in that order). */
     fun simulate(): Environment {
+        space.damping = p.damping
         createSoccerBall()
         createWalls()
         createTeams()
@@ -106,18 +107,33 @@ class Environment(val state: GameState, private val p: SimParameters) {
         return best
     }
 
-    /** Steps the space, optionally recording every body's path (ball first, then players, then opponents). */
-    fun run(steps: Int = 500, dt: Double = 1.0 / 120, record: Int = 0): Trajectories? {
+    /**
+     * Steps the space, optionally recording every body's path (ball first, then players, then
+     * opponents). With [untilRest] it stops early once everything has stopped (checked every 10
+     * steps), otherwise it runs exactly [steps] steps like the bot (500 x 1/120 s).
+     */
+    fun run(steps: Int = 500, dt: Double = 1.0 / 120, record: Int = 0, untilRest: Boolean = false): Trajectories? {
         val shapes = listOf(ballShape) + playersShapes + opponentShapes
         val paths = if (record > 0) shapes.map { mutableListOf(Point(it.body.px, it.body.py)) } else null
         for (i in 1..steps) {
             space.step(dt)
-            if (paths != null && (i % record == 0 || i == steps)) {
+            val last = i == steps || (untilRest && i % 10 == 0 && space.isAtRest())
+            if (paths != null && (i % record == 0 || last)) {
                 shapes.forEachIndexed { k, s -> paths[k].add(Point(s.body.px, s.body.py)) }
             }
+            if (last) break
         }
         return paths?.let { Trajectories(it[0], it.subList(1, 1 + playersShapes.size), it.subList(1 + playersShapes.size, it.size)) }
     }
+
+    /** Shot with the bot's force units, scaled by the calibrated [SimParameters.forceScale]. */
+    fun shootScaled(shape: Circle, angleDeg: Double, force: Double) = shoot(shape, angleDeg, force * p.forceScale)
+
+    fun positions(): Triple<Point, List<Point>, List<Point>> = Triple(
+        ballPosition(),
+        playersShapes.map { Point(it.body.px, it.body.py) },
+        opponentShapes.map { Point(it.body.px, it.body.py) },
+    )
 
     fun ballPosition() = Point(ballShape.body.px, ballShape.body.py)
 

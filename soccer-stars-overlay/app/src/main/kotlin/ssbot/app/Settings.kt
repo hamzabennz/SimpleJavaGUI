@@ -38,6 +38,15 @@ class Settings(context: Context) {
         get() = prefs.getBoolean("useTurnCheck", true)
         set(v) = prefs.edit().putBoolean("useTurnCheck", v).apply()
 
+    /** Physics fitted by Calibrate (null = the bot's simulation_report_3 values). */
+    var physics: ssbot.core.SimParameters?
+        get() = prefs.getString("physics", null)?.let { s ->
+            runCatching { ssbot.core.SimParameters.parse(s.split(',').map { it.toDouble() }) }.getOrNull()
+        }
+        set(v) = prefs.edit().apply {
+            if (v == null) remove("physics") else putString("physics", v.toList().joinToString(","))
+        }.apply()
+
     var showDetections: Boolean
         get() = prefs.getBoolean("showDetections", true)
         set(v) = prefs.edit().putBoolean("showDetections", v).apply()

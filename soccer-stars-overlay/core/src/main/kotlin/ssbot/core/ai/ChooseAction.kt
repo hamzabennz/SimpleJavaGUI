@@ -22,11 +22,24 @@ class Chromosome(var playerId: Int, var angle: Double, var force: Double) {
 
 data class ShotResult(val fitness: Double, val ballEnd: Point)
 
-/** Port of `Chromosome.calculate_fitness`. */
-fun evaluateShot(state: GameState, params: SimParameters, playerId: Int, angle: Double, force: Double): ShotResult {
+/** Longest simulated shot when running until rest: 20 s. */
+const val MAX_STEPS = 2400
+
+/**
+ * Port of `Chromosome.calculate_fitness`. With [untilRest] the shot is simulated until everything
+ * stops (the bot cut it off after 500 steps = 4.2 s, which ends long shots mid-flight).
+ */
+fun evaluateShot(
+    state: GameState,
+    params: SimParameters,
+    playerId: Int,
+    angle: Double,
+    force: Double,
+    untilRest: Boolean = false,
+): ShotResult {
     val env = Environment(state, params).simulate()
-    Environment.shoot(env.playersShapes[playerId - 1], round(angle), round(force))
-    env.run(500, 1.0 / 120)
+    env.shootScaled(env.playersShapes[playerId - 1], round(angle), round(force))
+    if (untilRest) env.run(MAX_STEPS, 1.0 / 120, untilRest = true) else env.run(500, 1.0 / 120)
 
     val ball = env.ballPosition()
     val fitness = when {
@@ -69,6 +82,7 @@ class ChooseAction(
     private val executor: ExecutorService? = null,
     private val onIteration: (iter: Int, best: Chromosome) -> Unit = { _, _ -> },
     private val isCancelled: () -> Boolean = { false },
+    private val untilRest: Boolean = false,
 ) {
     private val nPlayers = state.players.size
     val fitnessHistory = ArrayList<Double>()
@@ -84,9 +98,9 @@ class ChooseAction(
     private fun evaluate(list: List<Chromosome>) {
         val ex = executor
         if (ex == null) {
-            for (c in list) c.fitness = evaluateShot(state, params, c.playerId, c.angle, c.force).fitness
+            for (c in list) c.fitness = evaluateShot(state, params, c.playerId, c.angle, c.force, untilRest).fitness
         } else {
-            val futures = list.map { c -> ex.submit(Callable { evaluateShot(state, params, c.playerId, c.angle, c.force).fitness }) }
+            val futures = list.map { c -> ex.submit(Callable { evaluateShot(state, params, c.playerId, c.angle, c.force, untilRest).fitness }) }
             futures.forEachIndexed { i, f -> list[i].fitness = f.get() }
         }
     }
