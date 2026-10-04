@@ -36,6 +36,8 @@ data class OverlayModel(
     val turn: TurnState? = null,
     val arrowPrediction: Prediction? = null,
     val suggestion: Suggestion? = null,
+    /** After one of your shots: (predicted ball end, real ball end), screen pixels. */
+    val shotCheck: Pair<Point, Point>? = null,
     val hint: String = "",
     val status: String = "",
 )
@@ -83,7 +85,10 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
     /** Last aim seen on screen (board, arrow, when) – becomes a recorded shot once pieces move. */
     private var lastAim: Triple<TurnState, ArrowReading, Long>? = null
     private var pendingShot: Pair<TurnState, ArrowReading>? = null
+    private var pendingSince = 0L
     private var lastShotError: Double? = null
+    private var shotCheck: Pair<Point, Point>? = null
+    private var shotCheckAt = 0L
     @Volatile private var calibrating = false
     @Volatile private var calibrationStatus = ""
 
@@ -151,19 +156,29 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
         try {
             val arrow = analyzer.readArrow(win)
             watcher.settle(win, analyzer.playground!!)
-            if (arrow != null) myTurn = true // only your own aiming arrow is ever shown
+            if (arrow != null) {
+                myTurn = true // only your own aiming arrow is ever shown
+                pendingShot = null // a new aim: any unrecorded earlier shot is dropped
+            }
 
             // Pieces cannot move while you are aiming; otherwise a piece leaving its spot means the
             // detection is stale – a shot is under way.
             if (turnState != null && arrow == null && watcher.moved(win, null)) {
                 val aim = lastAim
-                pendingShot = if (aim != null && now - aim.third < 1500) aim.first to aim.second else null
+                val yourShot = aim != null && now - aim.third < 1500
+                if (yourShot) {
+                    pendingShot = aim!!.first to aim.second
+                    pendingSince = now
+                    lastAim = null
+                }
                 // Every shot passes the turn (after a goal the side that conceded kicks off, which
-                // is also the other side). Ignore a second move right after the board settled.
-                if (now - stateSince > 1200) myTurn = myTurn?.not() ?: if (pendingShot != null) false else null
+                // is also the other side). A move soon after the board was read is the same shot
+                // still rolling, not a new one.
+                if (yourShot) myTurn = false else if (now - stateSince > 2500) myTurn = myTurn?.not()
                 clearBoard()
                 noStateSince = now
             }
+            if (pendingShot != null && now - pendingSince > 30_000) pendingShot = null
 
             // Read the board once the pitch is still (or after 2 s without a reading, or on request).
             val forced = analyzeRequested
@@ -176,7 +191,6 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
                     turnState = st
                     stateSince = now
                     watcher.capture(win, st)
-                    recordShot(st)
                     if (settings.mode != Mode.PREDICT) startSearch(st)
                 } else {
                     noStateSince = now
@@ -188,6 +202,12 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
                     hint = calibrationStatus,
                     status = if (watcher.stillFrames >= STILL_FRAMES) "Pitch found – can't see the ball or your pieces (tap Analyze)" else "Pieces moving…",
                 )
+
+            // Record your last shot only once the board has stayed exactly as read for a while,
+            // so a slowly rolling ball is never taken as the end position.
+            if (pendingShot != null && arrow == null && watcher.stillFrames >= RECORD_STILL_FRAMES && now - stateSince > 700) {
+                recordShot(st)
+            }
 
             val prediction = arrow?.let { analyzer.predictArrow(st, it) }
             if (arrow != null) lastAim = Triple(st, arrow, now)
@@ -221,7 +241,8 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
                 if (!calibrating && calibrationStatus.isNotEmpty()) append(" · $calibrationStatus")
                 if (!analyzer.goalsFromTemplates) append(" · goals estimated")
             }
-            return base.copy(turn = st, arrowPrediction = prediction, suggestion = sug, hint = hint, status = status)
+            val check = shotCheck?.takeIf { now - shotCheckAt < 6000 }
+            return base.copy(turn = st, arrowPrediction = prediction, suggestion = sug, shotCheck = check, hint = hint, status = status)
         } finally {
             win.release()
         }
@@ -238,9 +259,22 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
         val idx = analyzer.closestPlayer(before, arrow)
         val rec = ShotRecord(before.ref, idx, arrow.angleDeg, arrow.force.toDouble(), after.ref)
         lastShotError = Calibration.error(analyzer.params, rec).ball
+        shotCheck = analyzer.predictArrow(before, arrow).paths.ball.last() to after.screen.ball
+        shotCheckAt = SystemClock.uptimeMillis()
         shots.add(rec)
         while (shots.size > MAX_SHOTS) shots.removeAt(0)
         runCatching { shotFile.writeText(shots.joinToString("\n") { it.encode() }) }
+    }
+
+    /** All recorded shots plus how far the current physics is off on each, for the Report button. */
+    fun exportShots(): String = buildString {
+        appendLine("# physics=${analyzer.params.toList().joinToString(",")}")
+        appendLine("# per shot: piece angle force | ball before -> real after | simulated after | ball error px")
+        for ((i, s) in shots.withIndex()) {
+            val e = runCatching { Calibration.error(analyzer.params, s).ball }.getOrDefault(-1.0)
+            appendLine("# $i: ${s.pieceIndex + 1} ${"%.1f".format(s.angle)} ${s.force.toInt()} | ${s.before.ball} -> ${s.after.ball} | err ${"%.0f".format(e)}")
+        }
+        for (s in shots) appendLine(s.encode())
     }
 
     private fun startCalibration() {
@@ -330,6 +364,8 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
     companion object {
         /** Consecutive still frames before the board is read (~0.2 s). */
         private const val STILL_FRAMES = 2
+        /** Still frames (~0.8 s) before a finished shot is recorded for calibration. */
+        private const val RECORD_STILL_FRAMES = 8
         private const val MAX_SHOTS = 40
     }
 }

@@ -62,24 +62,27 @@ data class ShotError(val ball: Double, val pieces: Double) {
  * Radii and wall thickness stay as the bot measured them.
  */
 object Calibration {
+    // Search ranges; friction and force scale are searched on a log scale because their right
+    // value can be off from the bot's by an order of magnitude.
     private val ranges = listOf(
         5.0 to 100.0, // player mass
         0.0 to 1.0, // player elasticity
         2.0 to 100.0, // ball mass
         0.0 to 1.0, // ball elasticity
         0.0 to 1.0, // walls elasticity
-        50.0 to 6000.0, // max_force (friction)
-        0.05 to 1.0, // damping
-        0.2 to 4.0, // force scale
+        Math.log(20.0) to Math.log(20000.0), // ln max_force (friction)
+        0.01 to 1.0, // damping
+        Math.log(0.05) to Math.log(20.0), // ln force scale
     )
 
     private fun genes(p: SimParameters) = doubleArrayOf(
-        p.playerMass, p.playerElasticity, p.ballMass, p.ballElasticity, p.wallsElasticity, p.maxForce, p.damping, p.forceScale,
+        p.playerMass, p.playerElasticity, p.ballMass, p.ballElasticity, p.wallsElasticity,
+        Math.log(p.maxForce), p.damping, Math.log(p.forceScale),
     )
 
     private fun params(base: SimParameters, g: DoubleArray) = base.copy(
         playerMass = g[0], playerElasticity = g[1], ballMass = g[2], ballElasticity = g[3],
-        wallsElasticity = g[4], maxForce = g[5], damping = g[6], forceScale = g[7],
+        wallsElasticity = g[4], maxForce = Math.exp(g[5]), damping = g[6], forceScale = Math.exp(g[7]),
     )
 
     fun error(p: SimParameters, shot: ShotRecord): ShotError {
@@ -108,7 +111,12 @@ object Calibration {
 
     fun meanBallError(p: SimParameters, shots: List<ShotRecord>) = shots.map { error(p, it).ball }.average()
 
-    private fun cost(p: SimParameters, shots: List<ShotRecord>) = shots.sumOf { error(p, it).cost } / shots.size
+    /** Mean cost over the best 80 % of shots, so a few badly recorded shots cannot dominate. */
+    private fun cost(p: SimParameters, shots: List<ShotRecord>): Double {
+        val c = shots.map { error(p, it).cost }.sorted()
+        val keep = maxOf(1, (c.size * 0.8).toInt())
+        return c.take(keep).average()
+    }
 
     fun fit(
         shots: List<ShotRecord>,

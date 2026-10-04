@@ -54,31 +54,33 @@ class ControlPanel(
         addView(handle)
 
         status.setTextColor(Color.rgb(200, 200, 210))
-        status.textSize = 11f
-        status.maxWidth = (230 * density).toInt()
+        status.textSize = 10f
+        status.maxLines = 9
+        status.maxWidth = (PANEL_DP * density).toInt()
         status.setPadding(pad, 0, pad, pad)
         addView(status)
 
+        // A narrow column that fits in the green strip left of the pitch, so it never hides pieces.
         body.orientation = VERTICAL
-        val row1 = LinearLayout(context).apply { orientation = HORIZONTAL }
-        val row2 = LinearLayout(context).apply {
-            orientation = HORIZONTAL
-            setPadding(0, pad / 2, 0, 0)
-        }
         modeButton = button(shortMode()) {
             settings.mode = Mode.entries[(settings.mode.ordinal + 1) % Mode.entries.size]
             modeButtonText()
             onModeChanged()
         }
-        row1.addView(modeButton)
-        row1.addView(button("Analyze") { onAnalyze() })
-        row1.addView(button("Re-init") { onReinit() })
-        row1.addView(button("Stop") { onStop() })
-        row2.addView(button("Calibrate") { onCalibrate() })
-        row2.addView(button("Report") { onReport() })
-        row2.addView(button("Draw") { onToggleDrawings() })
-        body.addView(row1)
-        body.addView(row2)
+        val buttons = listOf(
+            modeButton, button("Analyze") { onAnalyze() },
+            button("Calibrate") { onCalibrate() }, button("Report") { onReport() },
+            button("Re-init") { onReinit() }, button("Draw") { onToggleDrawings() },
+            button("Stop") { onStop() },
+        )
+        val rows = buttons.chunked(2).map { pair ->
+            LinearLayout(context).apply {
+                orientation = HORIZONTAL
+                setPadding(0, pad / 3, 0, 0)
+                pair.forEach { addView(it) }
+            }
+        }
+        rows.forEach { body.addView(it) }
         addView(body)
 
         // Tap the title to collapse/expand, drag it to move the panel.
@@ -102,7 +104,7 @@ class ControlPanel(
     private fun button(label: String, onClick: () -> Unit) = Button(context).apply {
         text = label
         isAllCaps = false
-        textSize = 11f
+        textSize = 10f
         setTextColor(Color.rgb(220, 220, 230))
         minWidth = 0; minimumWidth = 0
         minHeight = 0; minimumHeight = 0
@@ -112,8 +114,8 @@ class ControlPanel(
             setColor(Color.argb(230, 60, 60, 90))
             cornerRadius = 8 * density
         }
-        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-            marginEnd = (4 * density).toInt()
+        layoutParams = LinearLayout.LayoutParams(((PANEL_DP / 2 - 3) * density).toInt(), LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            marginEnd = (3 * density).toInt()
         }
         setOnClickListener { onClick() }
     }
@@ -138,7 +140,7 @@ class ControlPanel(
                     val dy = e.rawY - downY
                     if (abs(dx) + abs(dy) > 10 * density) dragging = true
                     if (dragging) {
-                        params.x = startX - dx.toInt() // gravity END: x grows leftwards
+                        params.x = startX + dx.toInt()
                         params.y = startY + dy.toInt()
                         wm.updateViewLayout(this@ControlPanel, params)
                     }
@@ -150,6 +152,9 @@ class ControlPanel(
     }
 
     companion object {
+        /** Panel width in dp: fits the strip left of the pitch on 19.5:9 phones. */
+        const val PANEL_DP = 120
+
         fun layoutParams(type: Int) = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -157,7 +162,7 @@ class ControlPanel(
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             android.graphics.PixelFormat.TRANSLUCENT,
         ).apply {
-            gravity = Gravity.TOP or Gravity.END
+            gravity = Gravity.TOP or Gravity.START
             x = 0
             y = 0
         }

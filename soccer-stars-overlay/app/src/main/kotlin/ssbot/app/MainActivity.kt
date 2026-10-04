@@ -97,6 +97,11 @@ class MainActivity : Activity() {
             Toast.makeText(this, "Physics reset – applies next time the overlay starts", Toast.LENGTH_LONG).show()
         })
 
+        root.addView(button("Delete recorded shots") {
+            java.io.File(filesDir, "shots.txt").delete()
+            Toast.makeText(this, "Recorded shots deleted – applies next time the overlay starts", Toast.LENGTH_LONG).show()
+        })
+
         root.addView(header("4. Run"))
         root.addView(button("Start overlay") { start() })
         root.addView(button("Stop overlay") { OverlayService.stop(this) })

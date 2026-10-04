@@ -51,6 +51,8 @@ class OverlayView(context: Context, private val settings: Settings) : View(conte
     private val goalHitPaint = stroke(Color.rgb(100, 210, 255), 3.5f)
     private val suggestPaint = stroke(Color.rgb(160, 110, 255), 3f)
     private val suggestPathPaint = stroke(Color.rgb(160, 110, 255), 2f, dashed = true)
+    private val checkPredPaint = stroke(Color.rgb(0, 235, 235), 2f, dashed = true)
+    private val checkRealPaint = stroke(Color.rgb(100, 210, 255), 3f)
     private val dragPaint = stroke(Color.rgb(200, 170, 255), 2f, dashed = true)
 
     override fun onDraw(canvas: Canvas) {
@@ -82,6 +84,13 @@ class OverlayView(context: Context, private val settings: Settings) : View(conte
             drawPath(canvas, p.paths.ball, ballPathPaint, r * 0.6f)
             val end = p.paths.ball.last()
             canvas.drawCircle(end.x.toFloat(), end.y.toFloat(), r * 0.7f, if (p.playerGoal) goalHitPaint else endPaint)
+        }
+
+        // After your shot: where the ball was predicted to stop (dashed ring) vs where it stopped.
+        m.shotCheck?.let { (pred, real) ->
+            canvas.drawCircle(pred.x.toFloat(), pred.y.toFloat(), r * 0.8f, checkPredPaint)
+            canvas.drawCircle(real.x.toFloat(), real.y.toFloat(), r * 0.8f, checkRealPaint)
+            canvas.drawLine(pred.x.toFloat(), pred.y.toFloat(), real.x.toFloat(), real.y.toFloat(), checkPredPaint)
         }
 
         // Best shot from the evolutionary search: ring the piece, show the shot direction,

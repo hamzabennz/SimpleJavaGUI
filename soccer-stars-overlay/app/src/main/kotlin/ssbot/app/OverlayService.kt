@@ -184,7 +184,8 @@ class OverlayService : Service() {
         )
         p.params = ControlPanel.layoutParams(type).apply {
             if (Build.VERSION.SDK_INT >= 28) layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
-            y = (resources.displayMetrics.heightPixels * 0.18).toInt()
+            // Below the avatar, in the strip left of the pitch (the game is landscape).
+            y = (minOf(resources.displayMetrics.heightPixels, resources.displayMetrics.widthPixels) * 0.17).toInt()
         }
         wm.addView(p, p.params)
         panel = p
@@ -326,6 +327,7 @@ class OverlayService : Service() {
             }
             save("report-$stamp.png", "image/png", png.toArray())
             save("report-$stamp.txt", "text/plain", info.toByteArray())
+            engine?.let { e -> if (e.shotCount > 0) save("shots-$stamp.txt", "text/plain", e.exportShots().toByteArray()) }
             main.post { Toast.makeText(this, "Saved to Download/StarsBot (report-$stamp)", Toast.LENGTH_LONG).show() }
         } catch (t: Throwable) {
             Log.e(TAG, "report failed", t)
