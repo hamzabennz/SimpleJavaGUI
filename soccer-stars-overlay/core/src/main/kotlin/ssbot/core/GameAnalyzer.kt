@@ -13,6 +13,9 @@ import ssbot.core.physics.Trajectories
 import ssbot.core.vision.ArrowDetector
 import ssbot.core.vision.ArrowReading
 import ssbot.core.vision.TemplateDetector
+import ssbot.core.vision.Piece
+import ssbot.core.vision.PieceDetector
+import ssbot.core.vision.Teams
 import ssbot.core.vision.Vision
 import ssbot.core.vision.Yolo
 import java.util.concurrent.ExecutorService
@@ -30,7 +33,17 @@ data class TurnState(
     val playerBoxes: List<Rect>,
     val opponentBoxes: List<Rect>,
     val ballBox: Rect,
-)
+    /** Colour/radius of each piece (robust detection only), same order as ref.players / ref.opponents. */
+    val playerPieces: List<Piece> = emptyList(),
+    val opponentPieces: List<Piece> = emptyList(),
+) {
+    /** The same board with the teams the other way round. */
+    fun swapped() = TurnState(
+        ref.copy(players = ref.opponents, opponents = ref.players),
+        screen.copy(players = screen.opponents, opponents = screen.players),
+        opponentBoxes, playerBoxes, ballBox, opponentPieces, playerPieces,
+    )
+}
 
 /** Simulated outcome of a shot, with paths converted to screen pixels for drawing. */
 data class Prediction(
@@ -90,7 +103,14 @@ class GameAnalyzer(
     private var playerDetector: TemplateDetector? = null
     private var opponentDetector: TemplateDetector? = null
 
-    val isInitialized get() = playerDetector != null
+    /**
+     * Find pieces with [PieceDetector] + [Teams] (any team skin, anywhere on the pitch) instead of
+     * the bot's half-pitch templates. Off by default so the parity tests run the original.
+     */
+    var robustPieces = false
+    val teams = Teams()
+
+    val isInitialized get() = playground != null && (robustPieces || playerDetector != null)
 
     fun initialize(screen: Mat) {
         val spg = Vision.getRectangle(screen) ?: throw InitError("pitch not found")
@@ -119,6 +139,12 @@ class GameAnalyzer(
         val dy = pg.y - RefFrame.REFERENCE_PLAYGROUND.y
         playerGoal = pgl?.toRect() ?: REF_PLAYER_GOAL.let { Rect(it.x + dx, it.y + dy, it.w, it.h) }
         opponentGoal = ogl?.toRect() ?: REF_OPPONENT_GOAL.let { Rect(it.x + dx, it.y + dy, it.w, it.h) }
+
+        teams.reset()
+        if (robustPieces) {
+            playground = pg
+            return
+        }
 
         // init_players: one piece from each half becomes the matching template.
         val x = pg.x.toInt(); val y = pg.y.toInt(); val w = pg.w.toInt(); val h = pg.h.toInt()
@@ -168,6 +194,7 @@ class GameAnalyzer(
 
     /** Pieces and ball on the reference window [win] (from [normalize]). */
     fun detectState(win: Mat): TurnState? {
+        if (robustPieces) return detectStateRobust(win)
         val pd = playerDetector ?: return null
         val od = opponentDetector ?: return null
         val f = frame ?: return null
@@ -193,8 +220,47 @@ class GameAnalyzer(
         )
     }
 
-    /** get_arrow_angle on the reference window; all values in reference pixels. */
-    fun readArrow(win: Mat): ArrowReading? = arrowDetector.read(win)
+    private fun detectStateRobust(win: Mat): TurnState? {
+        val f = frame ?: return null
+        val pg = playground ?: return null
+        val ball = ballModel.detect(win).filter { it.cls == 0 }.maxByOrNull { it.confidence } ?: return null
+        val ballC = Point((ball.x1 + ball.x2) / 2, (ball.y1 + ball.y2) / 2)
+        val pieces = PieceDetector.detect(win, pg).filter { kotlin.math.hypot(it.center.x - ballC.x, it.center.y - ballC.y) > 15 }
+        if (pieces.isEmpty()) return null
+        val (mine, theirs) = teams.split(pieces)
+        val ref = GameState(mine.map { it.center }, theirs.map { it.center }, ballC, playerGoal!!, opponentGoal!!, pg)
+        val screen = GameState(
+            ref.players.map(f::toScreen), ref.opponents.map(f::toScreen), f.toScreen(ballC),
+            f.toScreen(ref.playerGoal), f.toScreen(ref.opponentGoal), f.toScreen(pg),
+        )
+        fun box(p: Piece) = f.toScreen(Rect(p.center.x - p.radius, p.center.y - p.radius, 2 * p.radius, 2 * p.radius))
+        return TurnState(
+            ref, screen, mine.map(::box), theirs.map(::box),
+            f.toScreen(Rect(ball.x1, ball.y1, ball.x2 - ball.x1, ball.y2 - ball.y1)),
+            mine, theirs,
+        )
+    }
+
+    /**
+     * get_arrow_angle on the reference window; all values in reference pixels. With a [state]
+     * (robust mode) the piece faces are ignored when reading the arrow's colour.
+     */
+    fun readArrow(win: Mat, state: TurnState? = null): ArrowReading? =
+        if (robustPieces && state != null) arrowDetector.read(win, pieces = state.ref.players + state.ref.opponents)
+        else arrowDetector.read(win)
+
+    /**
+     * Only your own pieces can be aimed: if the piece under the arrow was classed as an opponent's,
+     * the team colours were guessed the wrong way round. Returns the corrected board.
+     */
+    fun ownShot(state: TurnState, arrow: ArrowReading): TurnState {
+        if (!robustPieces) return state
+        val all = state.playerPieces.map { it to true } + state.opponentPieces.map { it to false }
+        val (piece, isMine) = all.minByOrNull { kotlin.math.hypot(it.first.center.x - arrow.tail.x, it.first.center.y - arrow.tail.y) } ?: return state
+        if (kotlin.math.hypot(piece.center.x - arrow.tail.x, piece.center.y - arrow.tail.y) > 45) return state
+        teams.confirmMine(piece)
+        return if (isMine) state else state.swapped()
+    }
 
     /** main.py arrow branch: closest piece to the arrow tail, shoot(angle, force), 500 steps. */
     fun predictArrow(state: TurnState, arrow: ArrowReading): Prediction {

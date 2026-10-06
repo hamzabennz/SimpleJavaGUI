@@ -98,7 +98,7 @@ class MainActivity : Activity() {
         })
 
         root.addView(button("Delete recorded shots") {
-            java.io.File(filesDir, "shots.txt").delete()
+            java.io.File(filesDir, "shots-v2.txt").delete()
             Toast.makeText(this, "Recorded shots deleted – applies next time the overlay starts", Toast.LENGTH_LONG).show()
         })
 

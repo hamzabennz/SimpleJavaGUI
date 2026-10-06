@@ -65,7 +65,7 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
     // Leave half of the cores to the vision models so aiming stays responsive during a search.
     private val gaPool: ExecutorService = Executors.newFixedThreadPool(maxOf(1, cores / 2))
     private val gaRunner: ExecutorService = Executors.newSingleThreadExecutor()
-    private val shotFile = File(context.filesDir, "shots.txt")
+    private val shotFile = File(context.filesDir, "shots-v2.txt") // v2: shots recorded with robust piece detection
     private val shots = ArrayList<ShotRecord>()
 
     private var initSize = 0 to 0
@@ -111,6 +111,7 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
         }
         analyzer = GameAnalyzer(ballModel, arrowModel, template("player_goal.jpg"), template("opponent_goal.jpg"))
         analyzer.untilRest = true
+        analyzer.robustPieces = true
         settings.physics?.let { analyzer.params = it }
         if (shotFile.exists()) shotFile.readLines().mapNotNullTo(shots) { ShotRecord.decode(it) }
     }
@@ -154,7 +155,7 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
 
         val win = analyzer.normalize(screen)
         try {
-            val arrow = analyzer.readArrow(win)
+            val arrow = analyzer.readArrow(win, turnState)
             watcher.settle(win, analyzer.playground!!)
             if (arrow != null) {
                 myTurn = true // only your own aiming arrow is ever shown
@@ -197,7 +198,7 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
                 }
             }
 
-            val st = turnState
+            var st = turnState
                 ?: return base.copy(
                     hint = calibrationStatus,
                     status = if (watcher.stillFrames >= STILL_FRAMES) "Pitch found – can't see the ball or your pieces (tap Analyze)" else "Pieces moving…",
@@ -209,6 +210,15 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
                 recordShot(st)
             }
 
+            if (arrow != null) {
+                // The piece you aim with is yours: fixes the team colours if they were guessed wrong.
+                val own = analyzer.ownShot(st, arrow)
+                if (own !== st) {
+                    st = own
+                    turnState = own
+                    if (settings.mode != Mode.PREDICT) startSearch(own)
+                }
+            }
             val prediction = arrow?.let { analyzer.predictArrow(st, it) }
             if (arrow != null) lastAim = Triple(st, arrow, now)
 
@@ -229,6 +239,7 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
             }
             val status = buildString {
                 append("${st.screen.players.size} vs ${st.screen.opponents.size}")
+                if (!analyzer.teams.confirmed) append(" (aim once to confirm your team)")
                 append(" · turn: " + when (myTurn) { true -> "you"; false -> "opponent"; null -> "?" })
                 if (prediction != null) {
                     append(" · aim ${"%.0f".format(prediction.angleRef)}° force ${prediction.forceRef.toInt()}")

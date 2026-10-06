@@ -31,7 +31,12 @@ data class ArrowReading(
 /** Port of angle_detection.get_arrow_angle (YOLO arrow box -> yellow/orange mask -> angle, length, tail). */
 class ArrowDetector(private val yolo: Yolo) {
 
-    fun read(bgr: Mat, offset: Int = 0): ArrowReading? {
+    /**
+     * [pieces]: centres of the pieces on the board, if known. Their faces are removed from the
+     * colour mask first, and only the largest remaining blob is used, so orange/red team skins
+     * inside the arrow's box cannot be mistaken for the arrow (the bot used every blob).
+     */
+    fun read(bgr: Mat, offset: Int = 0, pieces: List<Point>? = null, pieceRadius: Double = 26.0): ArrowReading? {
         val best = yolo.detect(bgr).filter { it.cls == 0 }.maxByOrNull { it.confidence } ?: return null
         // PIL crop with int() coordinates
         val box = Vision.clip(
@@ -46,10 +51,16 @@ class ArrowDetector(private val yolo: Yolo) {
         Core.inRange(hsv, Scalar(0.0, 100.0, 100.0), Scalar(20.0, 255.0, 255.0), orange)
         val mask = Mat()
         Core.bitwise_or(yellow, orange, mask)
-        val contours = ArrayList<MatOfPoint>()
-        Imgproc.findContours(mask, contours, Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE)
+        if (pieces != null) {
+            for (p in pieces) {
+                Imgproc.circle(mask, org.opencv.core.Point(p.x - box.x, p.y - box.y), pieceRadius.toInt(), Scalar(0.0), -1)
+            }
+        }
+        val found = ArrayList<MatOfPoint>()
+        Imgproc.findContours(mask, found, Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE)
         hsv.release(); yellow.release(); orange.release(); mask.release()
-        if (contours.isEmpty()) return null
+        if (found.isEmpty()) return null
+        val contours = if (pieces != null) listOf(found.maxBy { Imgproc.contourArea(it) }) else found
 
         val maxContour = contours.maxBy { Imgproc.contourArea(it) }
         val m = Imgproc.moments(maxContour)
@@ -77,7 +88,7 @@ class ArrowDetector(private val yolo: Yolo) {
             val d = sqrt((c[j].x - c[i].x) * (c[j].x - c[i].x) + (c[j].y - c[i].y) * (c[j].y - c[i].y))
             if (d > maxSpan) { maxSpan = d; a = c[i]; b = c[j] }
         }
-        contours.forEach { it.release() }
+        found.forEach { it.release() }
         val force = (maxSpan - offset).toInt() * 100
         return ArrowReading(
             box, best.confidence, angle, maxSpan, force,
