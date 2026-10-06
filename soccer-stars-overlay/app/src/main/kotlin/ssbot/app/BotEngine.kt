@@ -126,6 +126,8 @@ class BotEngine(context: Context, private val settings: Settings, private val lo
     private var logInitFrame = false
     private var lastMotion = 0.0
     private var lastStatusLogged = ""
+    private var lastPitchCheck = 0L
+    private var pitchChangedCount = 0
 
     private fun p(pt: Point) = "(%.0f,%.0f)".format(pt.x, pt.y)
     private fun pts(l: List<Point>) = l.joinToString(" ", "[", "]") { p(it) }
@@ -170,6 +172,23 @@ class BotEngine(context: Context, private val settings: Settings, private val lo
             logger?.log("mode: $lastMode -> ${settings.mode}")
             lastMode = settings.mode
             turnState?.let { if (settings.mode != Mode.PREDICT && suggestion == null) startSearch(it) }
+        }
+
+        // Re-check the pitch every 3 s while nothing is being aimed: if it was measured during an
+        // intro animation or the view changed, measure everything again.
+        if (!arrowShown && now - lastPitchCheck > 3000) {
+            lastPitchCheck = now
+            if (analyzer.pitchChanged(screen)) {
+                pitchChangedCount++
+                if (pitchChangedCount >= 2) {
+                    logger?.log("pitch changed on screen (was ${analyzer.screenPlayground}): measuring again")
+                    pitchChangedCount = 0
+                    reinitRequested = true
+                    return base.copy(status = "Pitch changed – measuring again…")
+                }
+            } else {
+                pitchChangedCount = 0
+            }
         }
 
         val win = analyzer.normalize(screen)

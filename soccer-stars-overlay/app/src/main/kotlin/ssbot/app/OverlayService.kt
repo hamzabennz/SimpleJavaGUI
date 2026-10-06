@@ -52,6 +52,8 @@ class OverlayService : Service() {
     private var panel: ControlPanel? = null
     @Volatile private var running = false
     @Volatile private var reportRequested = false
+    @Volatile private var runSaved = false
+    private var finishing = false
     private var logger: RunLogger? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -67,7 +69,7 @@ class OverlayService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
-            stopSelf()
+            finishRun()
             return START_NOT_STICKY
         }
         if (running) return START_NOT_STICKY
@@ -89,7 +91,7 @@ class OverlayService : Service() {
         projection = mp
         mp.registerCallback(object : MediaProjection.Callback() {
             override fun onStop() {
-                main.post { stopSelf() }
+                main.post { finishRun() }
             }
         }, main)
 
@@ -184,7 +186,7 @@ class OverlayService : Service() {
             },
             onReport = { reportRequested = true },
             onCalibrate = { engine?.calibrateRequested = true },
-            onStop = { stopSelf() },
+            onStop = { finishRun() },
         )
         p.params = ControlPanel.layoutParams(type).apply {
             if (Build.VERSION.SDK_INT >= 28) layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
@@ -346,16 +348,32 @@ class OverlayService : Service() {
         }
     }
 
+    /** Saves the run zip first, then stops (stopping first can kill the process mid-write). */
+    private fun finishRun() {
+        if (finishing) return
+        finishing = true
+        panel?.setStatus("Saving the run…")
+        workerHandler.post {
+            saveRun()
+            main.post { stopSelf() }
+        }
+    }
+
+    private fun saveRun() {
+        if (runSaved) return
+        val lg = logger ?: return
+        runSaved = true
+        lg.log("run stopped")
+        val path = lg.export()
+        main.post { Toast.makeText(applicationContext, "Run saved: $path", Toast.LENGTH_LONG).show() }
+    }
+
     override fun onDestroy() {
         running = false
         runCatching { displayManager.unregisterDisplayListener(displayListener) }
         workerHandler.removeCallbacksAndMessages(null)
         workerHandler.post {
-            logger?.let { lg ->
-                lg.log("run stopped")
-                val path = lg.export()
-                main.post { Toast.makeText(applicationContext, "Run saved: $path", Toast.LENGTH_LONG).show() }
-            }
+            saveRun()
             engine?.close()
             engine = null
             virtualDisplay?.release()

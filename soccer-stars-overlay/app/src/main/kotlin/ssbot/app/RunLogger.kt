@@ -73,17 +73,21 @@ class RunLogger(context: Context) {
                 put(MediaStore.MediaColumns.MIME_TYPE, "application/zip")
                 put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/StarsBot")
             }
+            // Hidden from other apps (IS_PENDING) until it is completely written.
+            values.put(MediaStore.MediaColumns.IS_PENDING, 1)
             val resolver = appContext.contentResolver
             val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: error("cannot create $zipName")
             resolver.openOutputStream(uri)!!.use { os ->
                 ZipOutputStream(os).use { zip ->
-                    dir.listFiles()?.sortedBy { it.name }?.forEach { f ->
+                    // Text files first, so a cut-off zip still has the log.
+                    dir.listFiles()?.sortedWith(compareBy({ !it.name.endsWith(".log") && !it.name.endsWith(".txt") }, { it.name }))?.forEach { f ->
                         zip.putNextEntry(ZipEntry("$name/${f.name}"))
                         f.inputStream().use { it.copyTo(zip) }
                         zip.closeEntry()
                     }
                 }
             }
+            resolver.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
             "Download/StarsBot/$zipName"
         } catch (t: Throwable) {
             "failed: ${t.message}"

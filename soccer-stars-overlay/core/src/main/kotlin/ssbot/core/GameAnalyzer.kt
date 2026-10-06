@@ -184,6 +184,19 @@ class GameAnalyzer(
         return out
     }
 
+    /**
+     * True when the pitch on [screen] is clearly not where it was measured at initialisation
+     * (e.g. it was measured while the kick-off intro dimmed the screen and shrank the green area).
+     */
+    fun pitchChanged(screen: Mat): Boolean {
+        val old = screenPlayground ?: return false
+        val now = Vision.getRectangle(screen) ?: return false
+        if (now.w < screen.cols() * 0.3 || now.h < screen.rows() * 0.3) return false
+        val tol = old.w * 0.025
+        return kotlin.math.abs(now.x - old.x) > tol || kotlin.math.abs(now.y - old.y) > tol ||
+            kotlin.math.abs(now.w - old.w) > tol || kotlin.math.abs(now.h - old.h) > tol
+    }
+
     /** main.py: area = (playground.x, 0, playground.w // 3, height // 4), on the screen frame. */
     fun turnArea(screen: Mat): CvRect {
         val pg = screenPlayground ?: Rect(0.0, 0.0, screen.cols().toDouble(), screen.rows().toDouble())
