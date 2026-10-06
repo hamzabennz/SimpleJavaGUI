@@ -43,11 +43,16 @@ class OverlayView(context: Context, private val settings: Settings) : View(conte
     private val playerPaint = stroke(Color.argb(200, 70, 150, 255), 1.5f)
     private val opponentPaint = stroke(Color.argb(200, 230, 80, 230), 1.5f)
     private val ballBoxPaint = stroke(Color.argb(200, 0, 230, 230), 1.5f)
-    private val ballPathPaint = stroke(Color.rgb(0, 235, 235), 2.5f)
-    private val shooterPathPaint = stroke(Color.rgb(90, 160, 255), 2f)
-    private val piecePathPaint = stroke(Color.argb(210, 110, 170, 255), 1.5f, dashed = true)
-    private val oppPathPaint = stroke(Color.argb(210, 230, 110, 230), 1.5f, dashed = true)
-    private val endPaint = stroke(Color.rgb(0, 235, 235), 2f)
+    private val ballPathPaint = stroke(Color.argb(120, 0, 235, 235), 1.5f, dashed = true)
+    private val shooterPathPaint = stroke(Color.argb(110, 90, 160, 255), 1.2f, dashed = true)
+    private val piecePathPaint = stroke(Color.argb(110, 110, 170, 255), 1.2f, dashed = true)
+    private val oppPathPaint = stroke(Color.argb(110, 230, 110, 230), 1.2f, dashed = true)
+    private val endPaint = stroke(Color.argb(140, 0, 235, 235), 1.5f)
+    private val guidePaint = stroke(Color.rgb(140, 200, 255), 2.5f)
+    private val ghostPaint = stroke(Color.rgb(140, 200, 255), 2f, dashed = true)
+    private val guideBallPaint = stroke(Color.rgb(0, 240, 240), 3f)
+    private val guideGoalPaint = stroke(Color.rgb(100, 140, 255), 4f)
+    private val guidePiecePaint = stroke(Color.rgb(220, 130, 255), 2.5f)
     private val goalHitPaint = stroke(Color.rgb(100, 210, 255), 3.5f)
     private val suggestPaint = stroke(Color.rgb(160, 110, 255), 3f)
     private val suggestPathPaint = stroke(Color.rgb(160, 110, 255), 2f, dashed = true)
@@ -75,7 +80,22 @@ class OverlayView(context: Context, private val settings: Settings) : View(conte
             }
         }
 
-        // The bot's "Action Result": simulated outcome of the shot you are aiming.
+        // Aim guide (exact geometry): the aimed piece's line, a ghost piece where it first touches
+        // something, and the direction that ball/piece is knocked. Drawn on top of the simulation.
+        m.arrowPrediction?.guide?.let { g ->
+            drawPath(canvas, g.shooterPath, guidePaint, r)
+            g.contact?.let { canvas.drawCircle(it.x.toFloat(), it.y.toFloat(), r * 0.8f, ghostPaint) }
+            if (g.hitPath.size >= 2) {
+                val paint = if (g.hitIsBall) (if (g.ballToRightGoal) guideGoalPaint else guideBallPaint) else guidePiecePaint
+                drawPath(canvas, g.hitPath, paint, if (g.hitIsBall) r * 0.6f else r)
+                val a = g.hitPath[g.hitPath.size - 2]
+                val b = g.hitPath.last()
+                drawArrow(canvas, a, b, paint)
+            }
+        }
+
+        // The bot's "Action Result": simulated outcome of the shot you are aiming (approximate:
+        // each collision adds error, so it is drawn faint).
         m.arrowPrediction?.let { p ->
             p.paths.players.forEachIndexed { i, path ->
                 if (moved(path)) drawPath(canvas, path, if (!p.opponentShot && i == p.playerIndex) shooterPathPaint else piecePathPaint, r)

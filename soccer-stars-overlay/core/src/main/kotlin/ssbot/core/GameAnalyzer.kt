@@ -55,6 +55,8 @@ data class Prediction(
     val opponentGoal: Boolean,
     /** The aimed piece is the opponent's (their arrow is visible too); paths are in board order. */
     val opponentShot: Boolean = false,
+    /** Exact first-contact geometry of the shot (screen pixels); see [AimGuide]. */
+    val guide: AimGuide? = null,
 )
 
 data class Suggestion(
@@ -262,6 +264,22 @@ class GameAnalyzer(
 
     /** main.py arrow branch: closest piece to the arrow tail, shoot(angle, force), 500 steps. */
     fun predictArrow(state: TurnState, arrow: ArrowReading): Prediction {
+        val p = predictArrowSim(state, arrow)
+        val shooter = arrow.shooter ?: return p
+        return p.copy(guide = guideToScreen(AimGuideCalc.compute(state.ref, shooter, arrow.angleDeg, params.playerRadius, params.ballRadius)))
+    }
+
+    private fun guideToScreen(g: AimGuide): AimGuide {
+        val f = frame!!
+        return g.copy(
+            shooterPath = g.shooterPath.map(f::toScreen),
+            contact = g.contact?.let(f::toScreen),
+            hitCenter = g.hitCenter?.let(f::toScreen),
+            hitPath = g.hitPath.map(f::toScreen),
+        )
+    }
+
+    private fun predictArrowSim(state: TurnState, arrow: ArrowReading): Prediction {
         if (robustPieces) {
             // Either player's arrow: simulate the aimed piece's team as the shooting side.
             val (mine, idx) = shooterOf(state, arrow) ?: (true to 0)

@@ -272,7 +272,7 @@ class BotEngine(context: Context, private val settings: Settings, private val lo
             val hint = when {
                 calibrationStatus.isNotEmpty() && calibrating -> calibrationStatus
                 prediction != null -> ""
-                settings.mode == Mode.PREDICT -> "Aim with your finger – the cyan line shows where the ball goes"
+                settings.mode == Mode.PREDICT -> "Aim: light-blue line = your piece, cyan arrow = where the ball is knocked"
                 sug == null -> gaProgress.ifEmpty { "Searching for the best shot…" }
                 settings.mode == Mode.SUGGEST -> "Drag the circled piece back to the violet dot"
                 else -> if (shotDone) "Shot played" else if (turnOk) "" else "Waiting for your turn to shoot"
@@ -284,6 +284,11 @@ class BotEngine(context: Context, private val settings: Settings, private val lo
                 if (prediction != null) {
                     if (prediction.opponentShot) append(" · opponent aiming")
                     append(" · aim ${"%.0f".format(prediction.angleRef)}° force ${prediction.forceRef.toInt()}")
+                    prediction.guide?.let { g ->
+                        append(if (g.hitCenter == null) " · hits nothing" else if (g.hitIsBall) " · hits the ball" else " · hits a piece first")
+                        if (g.ballToRightGoal) append(" → ball heads into their goal")
+                        if (g.ballToLeftGoal) append(" → ball heads into YOUR goal")
+                    }
                     if (prediction.playerGoal) append(" · GOAL!")
                     if (prediction.opponentGoal) append(" · OWN GOAL!")
                 }
