@@ -249,7 +249,7 @@ class OverlayService : Service() {
                         logger?.let { lg ->
                             lg.log("Report pressed: status=${model.status}")
                             val path = lg.export()
-                            main.post { Toast.makeText(this, "Run saved: $path", Toast.LENGTH_LONG).show() }
+                            main.post { Toast.makeText(this@OverlayService, "Run saved: $path", Toast.LENGTH_LONG).show() }
                         }
                     }
                     frame.release()
