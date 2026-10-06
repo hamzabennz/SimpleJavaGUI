@@ -57,14 +57,12 @@ class RobustDetectionTest {
         val a = analyzer()
         a.initialize(img)
         val win = a.normalize(img)
-        var st = assertNotNull(a.detectState(win))
+        val st = assertNotNull(a.detectState(win))
         val r = assertNotNull(a.readArrow(win, st))
-        st = a.ownShot(st, r)
-        val pred = a.predictArrow(st, r)
-        val shooter = st.ref.players[pred.playerIndex]
+        val shooter = assertNotNull(r.shooter)
         println("aiming: angle=%.1f force=%d tail=%s shooter=%s teamsConfirmed=%s".format(r.angleDeg, r.force, r.tail, shooter, a.teams.confirmed))
         assertTrue(r.angleDeg in 30.0..50.0, "arrow points up-right")
-        assertTrue(r.force in 7000..10000, "plausible force")
+        assertTrue(r.force in 7000..11000, "plausible force")
         assertTrue(kotlin.math.hypot(shooter.x - r.tail.x, shooter.y - r.tail.y) < 40, "shooter under the arrow tail")
     }
 }

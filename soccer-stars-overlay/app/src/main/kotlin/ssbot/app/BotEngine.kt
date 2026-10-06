@@ -83,7 +83,7 @@ class BotEngine(context: Context, private val settings: Settings, private val lo
     private var myTurn: Boolean? = null
 
     /** Last aim seen on screen (board, arrow, when) – becomes a recorded shot once pieces move. */
-    private var lastAim: Triple<TurnState, ArrowReading, Long>? = null
+    private val aimHistory = ArrayDeque<Triple<TurnState, ArrowReading, Long>>()
     private var pendingShot: Pair<TurnState, ArrowReading>? = null
     private var pendingSince = 0L
     private var lastShotError: Double? = null
@@ -189,26 +189,30 @@ class BotEngine(context: Context, private val settings: Settings, private val lo
                 logger?.log("tick: board=${turnState != null} motion=%.2f still=%d turn=$myTurn pending=${pendingShot != null}".format(lastMotion, watcher.stillFrames))
             }
             if (arrow != null) {
-                myTurn = true // only your own aiming arrow is ever shown
+                // Both players' arrows are shown: the aimed piece tells whose turn it is.
+                turnState?.let { s -> analyzer.shooterOf(s, arrow)?.let { myTurn = it.first } }
                 pendingShot = null // a new aim: any unrecorded earlier shot is dropped
+                turnState?.let { aimHistory.addLast(Triple(it, arrow, now)) }
+                while (aimHistory.size > 8) aimHistory.removeFirst()
             }
 
             // Pieces cannot move while you are aiming; otherwise a piece leaving its spot means the
             // detection is stale – a shot is under way.
             if (turnState != null && arrow == null && watcher.moved(win, null)) {
-                val aim = lastAim
-                val yourShot = aim != null && now - aim.third < 1500
-                if (yourShot) {
-                    pendingShot = aim!!.first to aim.second
+                val aim = releasedAim(now)
+                val yourShot = aim != null
+                if (aim != null) {
+                    pendingShot = aim
                     pendingSince = now
-                    lastAim = null
                 }
+                aimHistory.clear()
                 // Every shot passes the turn (after a goal the side that conceded kicks off, which
                 // is also the other side). A move soon after the board was read is the same shot
                 // still rolling, not a new one.
                 val turnBefore = myTurn
-                if (yourShot) myTurn = false else if (now - stateSince > 2500) myTurn = myTurn?.not()
-                logger?.log("pieces moved: yourShot=$yourShot turn $turnBefore -> $myTurn")
+                val shooterMine = aim?.let { analyzer.shooterOf(it.first, it.second)?.first }
+                if (shooterMine != null) myTurn = !shooterMine else if (now - stateSince > 2500) myTurn = myTurn?.not()
+                logger?.log("pieces moved: aimedShot=$yourShot by=${when (shooterMine) { true -> "you"; false -> "opponent"; null -> "?" }} turn $turnBefore -> $myTurn")
                 if (yourShot) {
                     val (aimState, aimArrow) = pendingShot!!
                     val pr = runCatching { analyzer.predictArrow(aimState, aimArrow) }.getOrNull()
@@ -254,18 +258,7 @@ class BotEngine(context: Context, private val settings: Settings, private val lo
                 recordShot(st)
             }
 
-            if (arrow != null) {
-                // The piece you aim with is yours: fixes the team colours if they were guessed wrong.
-                val own = analyzer.ownShot(st, arrow)
-                if (own !== st) {
-                    logger?.log("team colours swapped: the piece you aimed with was classed as the opponent's")
-                    st = own
-                    turnState = own
-                    if (settings.mode != Mode.PREDICT) startSearch(own)
-                }
-            }
             val prediction = arrow?.let { analyzer.predictArrow(st, it) }
-            if (arrow != null) lastAim = Triple(st, arrow, now)
 
             val sug = suggestion
             val turnOk = myTurn == true || !settings.useTurnCheck
@@ -286,9 +279,10 @@ class BotEngine(context: Context, private val settings: Settings, private val lo
             }
             val status = buildString {
                 append("${st.screen.players.size} vs ${st.screen.opponents.size}")
-                if (!analyzer.teams.confirmed) append(" (aim once to confirm your team)")
+                if (!analyzer.teams.confirmed) append(" (teams guessed until the next kick-off)")
                 append(" · turn: " + when (myTurn) { true -> "you"; false -> "opponent"; null -> "?" })
                 if (prediction != null) {
+                    if (prediction.opponentShot) append(" · opponent aiming")
                     append(" · aim ${"%.0f".format(prediction.angleRef)}° force ${prediction.forceRef.toInt()}")
                     if (prediction.playerGoal) append(" · GOAL!")
                     if (prediction.opponentGoal) append(" · OWN GOAL!")
@@ -307,7 +301,23 @@ class BotEngine(context: Context, private val settings: Settings, private val lo
         }
     }
 
-    /** A shot you aimed has finished: store before/aim/after and show how far off the prediction was. */
+    /**
+     * The aim that was on screen when the shot was released: the median-force reading of the last
+     * ~0.6 s before the arrow vanished, leaving out the very last frame (it often catches the arrow
+     * shrinking or a partial blob).
+     */
+    private fun releasedAim(now: Long): Pair<TurnState, ArrowReading>? {
+        val last = aimHistory.lastOrNull() ?: return null
+        if (now - last.third > 1500) return null
+        val window = aimHistory.filter { last.third - it.third <= 600 }
+        val candidates = if (window.size >= 3) window.dropLast(1) else window
+        val shooter = candidates.last().second.shooter
+        val same = candidates.filter { it.second.shooter == shooter }
+        val pick = same.sortedBy { it.second.force }[same.size / 2]
+        return pick.first to pick.second
+    }
+
+    /** A shot whose aim was seen has finished: store before/aim/after and show how far off the prediction was. */
     private fun recordShot(after: TurnState) {
         val (before, arrow) = pendingShot ?: return
         pendingShot = null
@@ -318,12 +328,15 @@ class BotEngine(context: Context, private val settings: Settings, private val lo
             logger?.log("shot not recorded: ball at kick-off spot (goal)")
             return
         }
-        val idx = analyzer.closestPlayer(before, arrow)
-        val rec = ShotRecord(before.ref, idx, arrow.angleDeg, arrow.force.toDouble(), after.ref)
+        val (mine, idx) = analyzer.shooterOf(before, arrow) ?: return
+        // Physics is the same for both sides: store the shooting team as "players".
+        fun flip(g: ssbot.core.GameState) = g.copy(players = g.opponents, opponents = g.players)
+        val rec = if (mine) ShotRecord(before.ref, idx, arrow.angleDeg, arrow.force.toDouble(), after.ref)
+        else ShotRecord(flip(before.ref), idx, arrow.angleDeg, arrow.force.toDouble(), flip(after.ref))
         lastShotError = Calibration.error(analyzer.params, rec).ball
         shotCheck = analyzer.predictArrow(before, arrow).paths.ball.last() to after.screen.ball
         shotCheckAt = SystemClock.uptimeMillis()
-        logger?.log("shot recorded #${shots.size + 1}: piece ${idx + 1} angle=%.1f force=%.0f ball %s -> real %s, predicted %s, error %.0f px".format(
+        logger?.log("shot recorded #${shots.size + 1} (${if (mine) "yours" else "opponent's"}): piece ${idx + 1} angle=%.1f force=%.0f ball %s -> real %s, predicted %s, error %.0f px".format(
             rec.angle, rec.force, p(rec.before.ball), p(rec.after.ball), shotCheck?.let { "screen " + p(it.first) }, lastShotError))
         logger?.log("  after: you=${pts(after.ref.players)} opp=${pts(after.ref.opponents)}")
         shots.add(rec)

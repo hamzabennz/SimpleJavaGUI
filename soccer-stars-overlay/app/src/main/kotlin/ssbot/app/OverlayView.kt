@@ -78,19 +78,29 @@ class OverlayView(context: Context, private val settings: Settings) : View(conte
         // The bot's "Action Result": simulated outcome of the shot you are aiming.
         m.arrowPrediction?.let { p ->
             p.paths.players.forEachIndexed { i, path ->
-                if (moved(path)) drawPath(canvas, path, if (i == p.playerIndex) shooterPathPaint else piecePathPaint, r)
+                if (moved(path)) drawPath(canvas, path, if (!p.opponentShot && i == p.playerIndex) shooterPathPaint else piecePathPaint, r)
             }
-            p.paths.opponents.forEach { if (moved(it)) drawPath(canvas, it, oppPathPaint, r) }
+            p.paths.opponents.forEachIndexed { i, path ->
+                if (moved(path)) drawPath(canvas, path, if (p.opponentShot && i == p.playerIndex) shooterPathPaint else oppPathPaint, r)
+            }
             drawPath(canvas, p.paths.ball, ballPathPaint, r * 0.6f)
             val end = p.paths.ball.last()
             canvas.drawCircle(end.x.toFloat(), end.y.toFloat(), r * 0.7f, if (p.playerGoal) goalHitPaint else endPaint)
         }
 
         // After your shot: where the ball was predicted to stop (dashed ring) vs where it stopped.
+        // Nothing is drawn on or around the real ball: a ring there hides it from the ball detector.
         m.shotCheck?.let { (pred, real) ->
-            canvas.drawCircle(pred.x.toFloat(), pred.y.toFloat(), r * 0.8f, checkPredPaint)
-            canvas.drawCircle(real.x.toFloat(), real.y.toFloat(), r * 0.8f, checkRealPaint)
-            canvas.drawLine(pred.x.toFloat(), pred.y.toFloat(), real.x.toFloat(), real.y.toFloat(), checkPredPaint)
+            val c = r * 0.45f
+            canvas.drawLine(pred.x.toFloat() - c, pred.y.toFloat() - c, pred.x.toFloat() + c, pred.y.toFloat() + c, checkRealPaint)
+            canvas.drawLine(pred.x.toFloat() - c, pred.y.toFloat() + c, pred.x.toFloat() + c, pred.y.toFloat() - c, checkRealPaint)
+            val dx = real.x - pred.x
+            val dy = real.y - pred.y
+            val len = hypot(dx, dy)
+            if (len > r * 1.6) {
+                val k = (len - r * 1.2) / len
+                canvas.drawLine(pred.x.toFloat(), pred.y.toFloat(), (pred.x + dx * k).toFloat(), (pred.y + dy * k).toFloat(), checkPredPaint)
+            }
         }
 
         // Best shot from the evolutionary search: ring the piece, show the shot direction,

@@ -75,8 +75,10 @@ object PieceDetector {
 /**
  * Tells the two teams apart by face colour and remembers which one is yours.
  *
- * Before you have aimed, your team is guessed as the one further left (your half at kick-off);
- * once you aim, the piece under the arrow is yours and the colours are fixed from then on.
+ * You always play from the left. The first time the board looks like a kick-off (one colour
+ * entirely in the left half, the other entirely in the right half) the left colour is locked in as
+ * yours. Until then the team further left is assumed to be yours. Aiming does not change it:
+ * the game shows the opponent's aiming arrow too.
  */
 class Teams {
     private var mine: DoubleArray? = null
@@ -88,39 +90,30 @@ class Teams {
         mine = null; theirs = null; confirmed = false
     }
 
-    /** Splits [pieces] into (yours, opponent's). */
-    fun split(pieces: List<Piece>): Pair<List<Piece>, List<Piece>> {
+    /** Splits [pieces] into (yours, opponent's); [midX] is the x of the halfway line. */
+    fun split(pieces: List<Piece>, midX: Double): Pair<List<Piece>, List<Piece>> {
         if (pieces.isEmpty()) return emptyList<Piece>() to emptyList()
-        val m = mine
-        val t = theirs
-        if (m != null && t != null) {
-            val (a, b) = pieces.partition { dist(it, m) <= dist(it, t) }
-            if (!confirmed) {
-                // Keep refining the guess while it is only a guess.
-                if (a.isNotEmpty()) mine = mean(a)
-                if (b.isNotEmpty()) theirs = mean(b)
-            }
-            return a to b
-        }
         val (c1, c2) = kMeans(pieces)
-        if (c2.isEmpty()) return c1 to c2
+        if (c2.isEmpty()) {
+            // One colour visible only: assign by the remembered colours if we have them.
+            val m = mine ?: return c1 to c2
+            val t = theirs ?: return c1 to c2
+            return pieces.partition { dist(it, m) <= dist(it, t) }
+        }
         val left = if (c1.map { it.center.x }.average() <= c2.map { it.center.x }.average()) c1 else c2
         val right = if (left === c1) c2 else c1
-        mine = mean(left)
-        theirs = mean(right)
-        return left to right
-    }
-
-    /** You aimed with [piece]: make sure its colour is "yours". Returns true if the teams were swapped. */
-    fun confirmMine(piece: Piece): Boolean {
-        val m = mine ?: return false
-        val t = theirs ?: return false
-        confirmed = true
-        if (dist(piece, t) < dist(piece, m)) {
-            mine = t; theirs = m
-            return true
+        if (!confirmed && left.size >= 4 && right.size >= 4 && left.all { it.center.x < midX } && right.all { it.center.x > midX }) {
+            mine = mean(left); theirs = mean(right); confirmed = true
         }
-        return false
+        val m = mine
+        val t = theirs
+        if (confirmed && m != null && t != null) {
+            // Locked colours decide; k-means only separated the two groups.
+            val c1Mine = dist(mean(c1), m) + dist(mean(c2), t) <= dist(mean(c1), t) + dist(mean(c2), m)
+            return if (c1Mine) c1 to c2 else c2 to c1
+        }
+        mine = mean(left); theirs = mean(right)
+        return left to right
     }
 
     private fun kMeans(pieces: List<Piece>): Pair<List<Piece>, List<Piece>> {
@@ -148,4 +141,5 @@ class Teams {
 
     private fun mean(l: List<Piece>) = doubleArrayOf(l.sumOf { it.a } / l.size, l.sumOf { it.b } / l.size)
     private fun dist(p: Piece, c: DoubleArray) = hypot(p.a - c[0], p.b - c[1])
+    private fun dist(a: DoubleArray, b: DoubleArray) = hypot(a[0] - b[0], a[1] - b[1])
 }

@@ -53,6 +53,8 @@ data class Prediction(
     val paths: Trajectories,
     val playerGoal: Boolean,
     val opponentGoal: Boolean,
+    /** The aimed piece is the opponent's (their arrow is visible too); paths are in board order. */
+    val opponentShot: Boolean = false,
 )
 
 data class Suggestion(
@@ -227,7 +229,7 @@ class GameAnalyzer(
         val ballC = Point((ball.x1 + ball.x2) / 2, (ball.y1 + ball.y2) / 2)
         val pieces = PieceDetector.detect(win, pg).filter { kotlin.math.hypot(it.center.x - ballC.x, it.center.y - ballC.y) > 15 }
         if (pieces.isEmpty()) return null
-        val (mine, theirs) = teams.split(pieces)
+        val (mine, theirs) = teams.split(pieces, pg.x + pg.w / 2)
         val ref = GameState(mine.map { it.center }, theirs.map { it.center }, ballC, playerGoal!!, opponentGoal!!, pg)
         val screen = GameState(
             ref.players.map(f::toScreen), ref.opponents.map(f::toScreen), f.toScreen(ballC),
@@ -243,27 +245,33 @@ class GameAnalyzer(
 
     /**
      * get_arrow_angle on the reference window; all values in reference pixels. With a [state]
-     * (robust mode) the piece faces are ignored when reading the arrow's colour.
+     * (robust mode) the arrow is measured from the aimed piece (see ArrowDetector.readOnBoard).
      */
     fun readArrow(win: Mat, state: TurnState? = null): ArrowReading? =
-        if (robustPieces && state != null) arrowDetector.read(win, pieces = state.ref.players + state.ref.opponents)
+        if (robustPieces && state != null) arrowDetector.readOnBoard(win, state.ref.players + state.ref.opponents)
+        else if (robustPieces) null
         else arrowDetector.read(win)
 
-    /**
-     * Only your own pieces can be aimed: if the piece under the arrow was classed as an opponent's,
-     * the team colours were guessed the wrong way round. Returns the corrected board.
-     */
-    fun ownShot(state: TurnState, arrow: ArrowReading): TurnState {
-        if (!robustPieces) return state
-        val all = state.playerPieces.map { it to true } + state.opponentPieces.map { it to false }
-        val (piece, isMine) = all.minByOrNull { kotlin.math.hypot(it.first.center.x - arrow.tail.x, it.first.center.y - arrow.tail.y) } ?: return state
-        if (kotlin.math.hypot(piece.center.x - arrow.tail.x, piece.center.y - arrow.tail.y) > 45) return state
-        teams.confirmMine(piece)
-        return if (isMine) state else state.swapped()
+    /** Whose piece the arrow is on: (true = yours, index in that team), or null. */
+    fun shooterOf(state: TurnState, arrow: ArrowReading): Pair<Boolean, Int>? {
+        val s = arrow.shooter ?: arrow.tail
+        val all = state.ref.players.mapIndexed { i, p -> Triple(true, i, p) } + state.ref.opponents.mapIndexed { i, p -> Triple(false, i, p) }
+        val best = all.minByOrNull { kotlin.math.hypot(it.third.x - s.x, it.third.y - s.y) } ?: return null
+        return best.first to best.second
     }
 
     /** main.py arrow branch: closest piece to the arrow tail, shoot(angle, force), 500 steps. */
     fun predictArrow(state: TurnState, arrow: ArrowReading): Prediction {
+        if (robustPieces) {
+            // Either player's arrow: simulate the aimed piece's team as the shooting side.
+            val (mine, idx) = shooterOf(state, arrow) ?: (true to 0)
+            if (!mine) {
+                val p = simulateOn(state.ref.copy(players = state.ref.opponents, opponents = state.ref.players), idx, arrow.angleDeg, arrow.force.toDouble())
+                // Goal flags depend on the goal rectangles, not on the team lists: keep them.
+                return p.copy(paths = Trajectories(p.paths.ball, p.paths.opponents, p.paths.players), opponentShot = true)
+            }
+            return simulateOn(state.ref, idx, arrow.angleDeg, arrow.force.toDouble())
+        }
         val env = Environment(state.ref, params).simulate()
         val idx = env.findClosestShape(arrow.tail)
         env.shootScaled(env.playersShapes[idx], arrow.angleDeg, arrow.force.toDouble())
@@ -273,6 +281,12 @@ class GameAnalyzer(
     /** Index of your piece the arrow belongs to (the one closest to the arrow tail). */
     fun closestPlayer(state: TurnState, arrow: ArrowReading): Int =
         Environment(state.ref, params).simulate().findClosestShape(arrow.tail)
+
+    private fun simulateOn(ref: GameState, idx: Int, angle: Double, force: Double): Prediction {
+        val env = Environment(ref, params).simulate()
+        env.shootScaled(env.playersShapes[idx], angle, force)
+        return finish(env, idx, angle, force)
+    }
 
     fun simulate(state: TurnState, playerIndex: Int, angle: Double, force: Double, roundInputs: Boolean): Prediction {
         val env = Environment(state.ref, params).simulate()

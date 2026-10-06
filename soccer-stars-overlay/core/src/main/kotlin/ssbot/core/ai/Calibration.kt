@@ -58,8 +58,8 @@ data class ShotError(val ball: Double, val pieces: Double) {
 /**
  * Fits the physics parameters to real shots, like the bot's simulate.py / sim_chromosome.py
  * (which fitted one shot), but over every recorded shot and with the aim known from the arrow.
- * Fitted: masses, elasticities, friction (max_force), damping and the arrow-force scale.
- * Radii and wall thickness stay as the bot measured them.
+ * Fitted: masses, elasticities, friction (max_force), damping, the arrow-force scale and the
+ * piece/ball radii. Wall thickness stays as the bot measured it.
  */
 object Calibration {
     // Search ranges; friction and force scale are searched on a log scale because their right
@@ -73,16 +73,19 @@ object Calibration {
         Math.log(20.0) to Math.log(20000.0), // ln max_force (friction)
         0.01 to 1.0, // damping
         Math.log(0.05) to Math.log(20.0), // ln force scale
+        18.0 to 30.0, // piece radius (collision size; whether a shot grazes a piece or misses it)
+        8.0 to 16.0, // ball radius
     )
 
     private fun genes(p: SimParameters) = doubleArrayOf(
         p.playerMass, p.playerElasticity, p.ballMass, p.ballElasticity, p.wallsElasticity,
-        Math.log(p.maxForce), p.damping, Math.log(p.forceScale),
+        Math.log(p.maxForce), p.damping, Math.log(p.forceScale), p.playerRadius, p.ballRadius,
     )
 
     private fun params(base: SimParameters, g: DoubleArray) = base.copy(
         playerMass = g[0], playerElasticity = g[1], ballMass = g[2], ballElasticity = g[3],
         wallsElasticity = g[4], maxForce = Math.exp(g[5]), damping = g[6], forceScale = Math.exp(g[7]),
+        playerRadius = g[8], ballRadius = g[9],
     )
 
     fun error(p: SimParameters, shot: ShotRecord): ShotError {
