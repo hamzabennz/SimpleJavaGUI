@@ -48,4 +48,19 @@ class RunReplayTest {
 
     @Test fun yourShotUpRight() = check("0017-aim-start.jpg", 59.0, true)
     @Test fun opponentShotLeft() = check("0036-aim-start.jpg", 180.0, false)
+
+    /** Orange-ankh vs dark-red-lion skins (second run): the teams must not be mixed up. */
+    @Test
+    fun closeSkinsSplitCorrectly() {
+        val img = Imgcodecs.imread(File(fixtures, "run1/0016-aim-last.jpg").path)
+        val a = analyzer()
+        a.initialize(img)
+        val st = assertNotNull(a.detectState(a.normalize(img)))
+        val orange = st.playerPieces.map { it.a }
+        val red = st.opponentPieces.map { it.a }
+        println("orange a=${orange.map { it.toInt() }} red a=${red.map { it.toInt() }}")
+        assertEquals(5, st.ref.players.size)
+        assertEquals(5, st.ref.opponents.size)
+        assertTrue(orange.min() > red.max() || red.min() > orange.max(), "teams separated")
+    }
 }

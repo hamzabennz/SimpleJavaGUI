@@ -116,7 +116,37 @@ class Teams {
         return left to right
     }
 
+    /**
+     * Splits the pieces into two colour groups of at most 5 each (a team has 5 pieces), trying
+     * every such split and keeping the one with the smallest within-group colour spread. This
+     * separates close skins (orange vs dark red) that a plain 2-means split mixes up.
+     */
     private fun kMeans(pieces: List<Piece>): Pair<List<Piece>, List<Piece>> {
+        val n = pieces.size
+        var spread = 0.0
+        for (p in pieces) for (q in pieces) spread = maxOf(spread, hypot(p.a - q.a, p.b - q.b))
+        if (spread < 12) return pieces to emptyList() // one colour only
+        val lo = maxOf(1, n - 5)
+        val hi = minOf(5, n - 1)
+        if (n > 12 || lo > hi) return twoMeans(pieces)
+        var bestCost = Double.POSITIVE_INFINITY
+        var bestMask = 0
+        for (mask in 1 until (1 shl n) - 1) {
+            val k = Integer.bitCount(mask)
+            if (k < lo || k > hi) continue
+            val cost = sse(pieces.filterIndexed { i, _ -> mask and (1 shl i) != 0 }) +
+                sse(pieces.filterIndexed { i, _ -> mask and (1 shl i) == 0 })
+            if (cost < bestCost) { bestCost = cost; bestMask = mask }
+        }
+        return pieces.filterIndexed { i, _ -> bestMask and (1 shl i) != 0 } to pieces.filterIndexed { i, _ -> bestMask and (1 shl i) == 0 }
+    }
+
+    private fun sse(l: List<Piece>): Double {
+        val m = mean(l)
+        return l.sumOf { (it.a - m[0]) * (it.a - m[0]) + (it.b - m[1]) * (it.b - m[1]) }
+    }
+
+    private fun twoMeans(pieces: List<Piece>): Pair<List<Piece>, List<Piece>> {
         // Seed with the two pieces furthest apart in colour.
         var s1 = pieces[0]
         var s2 = pieces[0]
@@ -125,7 +155,6 @@ class Teams {
             val d = hypot(p.a - q.a, p.b - q.b)
             if (d > best) { best = d; s1 = p; s2 = q }
         }
-        if (best < 12) return pieces to emptyList() // one colour only
         var c1 = doubleArrayOf(s1.a, s1.b)
         var c2 = doubleArrayOf(s2.a, s2.b)
         var g1 = listOf<Piece>()
