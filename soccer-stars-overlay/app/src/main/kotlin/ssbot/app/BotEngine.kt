@@ -56,7 +56,7 @@ data class OverlayModel(
  *  - each of your shots is recorded (board before, aim, board after) and Calibrate fits the
  *    physics to those real shots, like the bot's simulate.py did for one shot.
  */
-class BotEngine(context: Context, private val settings: Settings) : AutoCloseable {
+class BotEngine(context: Context, private val settings: Settings, private val logger: RunLogger? = null) : AutoCloseable {
     private val ballModel: Yolo
     private val arrowModel: Yolo
     private val analyzer: GameAnalyzer
@@ -118,6 +118,18 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
 
     val shotCount get() = shots.size
 
+    // Run log bookkeeping
+    private var lastInitError = ""
+    private var lastHeartbeat = 0L
+    private var arrowShown = false
+    private var lastAimFrame: Mat? = null
+    private var logInitFrame = false
+    private var lastMotion = 0.0
+    private var lastStatusLogged = ""
+
+    private fun p(pt: Point) = "(%.0f,%.0f)".format(pt.x, pt.y)
+    private fun pts(l: List<Point>) = l.joinToString(" ", "[", "]") { p(it) }
+
     fun process(screen: Mat): OverlayModel {
         val w = screen.cols()
         val h = screen.rows()
@@ -129,12 +141,18 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
         if (!analyzer.isInitialized || reinitRequested || initSize != (w to h)) {
             try {
                 analyzer.initialize(screen)
+                logger?.log("init: screen ${w}x$h pitch(screen)=${analyzer.screenPlayground} pitch(window)=${analyzer.playground} " +
+                    "goals(window)=${analyzer.playerGoal} / ${analyzer.opponentGoal} goalsFromTemplates=${analyzer.goalsFromTemplates} " +
+                    "scale=%.4f,%.4f offset=%.0f,%.0f".format(analyzer.frame!!.sx, analyzer.frame!!.sy, analyzer.frame!!.ox, analyzer.frame!!.oy))
+                logInitFrame = true
+                lastInitError = ""
                 initSize = w to h
                 reinitRequested = false
                 clearBoard()
                 watcher.reset()
                 noStateSince = now
             } catch (e: InitError) {
+                if (e.message != lastInitError) { lastInitError = e.message ?: ""; logger?.log("init failed: ${e.message} (screen ${w}x$h)") }
                 return OverlayModel(w, h, status = "Looking for the pitch… (${e.message}). Start a match.")
             }
         }
@@ -149,14 +167,27 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
             pieceRadius = (30 / f.sx).toFloat(),
         )
         if (settings.mode != lastMode) {
+            logger?.log("mode: $lastMode -> ${settings.mode}")
             lastMode = settings.mode
             turnState?.let { if (settings.mode != Mode.PREDICT && suggestion == null) startSearch(it) }
         }
 
         val win = analyzer.normalize(screen)
         try {
+            if (logInitFrame) { logInitFrame = false; logger?.frame("init", win) }
             val arrow = analyzer.readArrow(win, turnState)
-            watcher.settle(win, analyzer.playground!!)
+            lastMotion = watcher.settle(win, analyzer.playground!!)
+            if (arrow != null && !arrowShown) {
+                logger?.log("aim start: angle=%.1f force=%d tail=%s length=%.1f".format(arrow.angleDeg, arrow.force, p(arrow.tail), arrow.length))
+                logger?.frame("aim-start", win)
+            }
+            if (arrow == null && arrowShown) logger?.log("aim end")
+            arrowShown = arrow != null
+            if (arrow != null) { lastAimFrame?.release(); lastAimFrame = win.clone() }
+            if (now - lastHeartbeat > 2000) {
+                lastHeartbeat = now
+                logger?.log("tick: board=${turnState != null} motion=%.2f still=%d turn=$myTurn pending=${pendingShot != null}".format(lastMotion, watcher.stillFrames))
+            }
             if (arrow != null) {
                 myTurn = true // only your own aiming arrow is ever shown
                 pendingShot = null // a new aim: any unrecorded earlier shot is dropped
@@ -175,7 +206,15 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
                 // Every shot passes the turn (after a goal the side that conceded kicks off, which
                 // is also the other side). A move soon after the board was read is the same shot
                 // still rolling, not a new one.
+                val turnBefore = myTurn
                 if (yourShot) myTurn = false else if (now - stateSince > 2500) myTurn = myTurn?.not()
+                logger?.log("pieces moved: yourShot=$yourShot turn $turnBefore -> $myTurn")
+                if (yourShot) {
+                    val (aimState, aimArrow) = pendingShot!!
+                    val pr = runCatching { analyzer.predictArrow(aimState, aimArrow) }.getOrNull()
+                    logger?.log("  released aim: angle=%.1f force=%d tail=%s predicted ball end=%s".format(aimArrow.angleDeg, aimArrow.force, p(aimArrow.tail), pr?.let { p(it.paths.ball.last()) }))
+                    lastAimFrame?.let { logger?.frame("aim-last", it) }
+                }
                 clearBoard()
                 noStateSince = now
             }
@@ -192,8 +231,13 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
                     turnState = st
                     stateSince = now
                     watcher.capture(win, st)
+                    logger?.log("board read${if (forced) " (Analyze)" else ""}: you=${pts(st.ref.players)} opp=${pts(st.ref.opponents)} ball=${p(st.ref.ball)} teamConfirmed=${analyzer.teams.confirmed} " +
+                        "colours you=${st.playerPieces.map { "%.0f/%.0f".format(it.a, it.b) }} opp=${st.opponentPieces.map { "%.0f/%.0f".format(it.a, it.b) }}")
+                    logger?.frame("board", win)
                     if (settings.mode != Mode.PREDICT) startSearch(st)
                 } else {
+                    logger?.log("board read failed (ball or pieces not found)")
+                    logger?.frame("board-failed", win)
                     noStateSince = now
                 }
             }
@@ -214,6 +258,7 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
                 // The piece you aim with is yours: fixes the team colours if they were guessed wrong.
                 val own = analyzer.ownShot(st, arrow)
                 if (own !== st) {
+                    logger?.log("team colours swapped: the piece you aimed with was classed as the opponent's")
                     st = own
                     turnState = own
                     if (settings.mode != Mode.PREDICT) startSearch(own)
@@ -226,7 +271,9 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
             val turnOk = myTurn == true || !settings.useTurnCheck
             if (settings.mode == Mode.AUTO && sug != null && !shotDone && arrow == null && turnOk) {
                 shotDone = true
-                onShot?.invoke(sug.dragStart, scaleDrag(sug.dragStart, sug.dragEnd))
+                val end = scaleDrag(sug.dragStart, sug.dragEnd)
+                logger?.log("auto swipe: ${sug.action} screen ${p(sug.dragStart)} -> ${p(end)}")
+                onShot?.invoke(sug.dragStart, end)
             }
 
             val hint = when {
@@ -252,6 +299,7 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
                 if (!calibrating && calibrationStatus.isNotEmpty()) append(" · $calibrationStatus")
                 if (!analyzer.goalsFromTemplates) append(" · goals estimated")
             }
+            if (status != lastStatusLogged && arrow == null) { lastStatusLogged = status; logger?.log("status: $status | hint: $hint") }
             val check = shotCheck?.takeIf { now - shotCheckAt < 6000 }
             return base.copy(turn = st, arrowPrediction = prediction, suggestion = sug, shotCheck = check, hint = hint, status = status)
         } finally {
@@ -266,15 +314,22 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
         // A goal resets the pieces to kick-off: the "after" board is not the shot's result.
         val pg = after.ref.playground
         val centre = Point(pg.x + pg.w / 2, pg.y + pg.h / 2)
-        if (hypot(after.ref.ball.x - centre.x, after.ref.ball.y - centre.y) < 15) return
+        if (hypot(after.ref.ball.x - centre.x, after.ref.ball.y - centre.y) < 15) {
+            logger?.log("shot not recorded: ball at kick-off spot (goal)")
+            return
+        }
         val idx = analyzer.closestPlayer(before, arrow)
         val rec = ShotRecord(before.ref, idx, arrow.angleDeg, arrow.force.toDouble(), after.ref)
         lastShotError = Calibration.error(analyzer.params, rec).ball
         shotCheck = analyzer.predictArrow(before, arrow).paths.ball.last() to after.screen.ball
         shotCheckAt = SystemClock.uptimeMillis()
+        logger?.log("shot recorded #${shots.size + 1}: piece ${idx + 1} angle=%.1f force=%.0f ball %s -> real %s, predicted %s, error %.0f px".format(
+            rec.angle, rec.force, p(rec.before.ball), p(rec.after.ball), shotCheck?.let { "screen " + p(it.first) }, lastShotError))
+        logger?.log("  after: you=${pts(after.ref.players)} opp=${pts(after.ref.opponents)}")
         shots.add(rec)
         while (shots.size > MAX_SHOTS) shots.removeAt(0)
         runCatching { shotFile.writeText(shots.joinToString("\n") { it.encode() }) }
+        logger?.file("shots.txt", exportShots())
     }
 
     /** All recorded shots plus how far the current physics is off on each, for the Report button. */
@@ -298,6 +353,7 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
         val data = shots.toList()
         val start = analyzer.params
         calibrationStatus = "Calibrating on ${data.size} shots…"
+        logger?.log("calibration start: ${data.size} shots, physics=${start.toList()}")
         gaRunner.submit {
             try {
                 val before = Calibration.meanBallError(start, data)
@@ -310,11 +366,14 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
                     analyzer.params = fitted
                     settings.physics = fitted
                     calibrationStatus = "Calibrated on ${data.size} shots: ball error ${before.toInt()} → ${after.toInt()} px"
+                    logger?.log("calibration done: error %.1f -> %.1f px, physics=${fitted.toList()}".format(before, after))
                 } else {
                     calibrationStatus = "Calibration did not improve (${before.toInt()} px) – kept the old physics"
+                    logger?.log("calibration: no improvement (%.1f -> %.1f px)".format(before, after))
                 }
             } catch (e: Exception) {
                 calibrationStatus = "Calibration failed: ${e.message}"
+                logger?.log("calibration failed: $e")
             } finally {
                 calibrating = false
             }
@@ -365,6 +424,7 @@ class BotEngine(context: Context, private val settings: Settings) : AutoCloseabl
     }
 
     override fun close() {
+        lastAimFrame?.release()
         gaCancel.set(true)
         gaRunner.shutdownNow()
         gaPool.shutdownNow()

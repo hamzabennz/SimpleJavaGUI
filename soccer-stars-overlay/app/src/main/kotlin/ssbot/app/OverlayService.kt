@@ -52,6 +52,7 @@ class OverlayService : Service() {
     private var panel: ControlPanel? = null
     @Volatile private var running = false
     @Volatile private var reportRequested = false
+    private var logger: RunLogger? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -101,7 +102,10 @@ class OverlayService : Service() {
         workerHandler.post {
             try {
                 if (!OpenCVLoader.initLocal()) error("OpenCV failed to load")
-                engine = BotEngine(this, settings).also { e ->
+                val lg = RunLogger(this)
+                logger = lg
+                lg.log("settings: mode=${settings.mode} dragScale=${settings.dragScale} ga=${settings.gaIterations}x${settings.gaPopulation} useTurnCheck=${settings.useTurnCheck} physics=${settings.physics?.toList()}")
+                engine = BotEngine(this, settings, lg).also { e ->
                     e.onShot = { start, end ->
                         main.post {
                             val g = GestureService.instance
@@ -242,6 +246,11 @@ class OverlayService : Service() {
                     if (reportRequested) {
                         reportRequested = false
                         saveReport(frame, model)
+                        logger?.let { lg ->
+                            lg.log("Report pressed: status=${model.status}")
+                            val path = lg.export()
+                            main.post { Toast.makeText(this, "Run saved: $path", Toast.LENGTH_LONG).show() }
+                        }
                     }
                     frame.release()
                     overlay?.model = model
@@ -342,6 +351,11 @@ class OverlayService : Service() {
         runCatching { displayManager.unregisterDisplayListener(displayListener) }
         workerHandler.removeCallbacksAndMessages(null)
         workerHandler.post {
+            logger?.let { lg ->
+                lg.log("run stopped")
+                val path = lg.export()
+                main.post { Toast.makeText(applicationContext, "Run saved: $path", Toast.LENGTH_LONG).show() }
+            }
             engine?.close()
             engine = null
             virtualDisplay?.release()
