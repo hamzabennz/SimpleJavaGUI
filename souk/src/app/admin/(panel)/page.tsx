@@ -31,6 +31,20 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     ["CA livré", dzd(revenue._sum.total ?? 0, lang)],
     ["Panier moyen", total ? dzd(Math.round(byStatus.reduce((a, x) => a + (x._sum.total ?? 0), 0) / total)) : "—"],
   ];
+  const [productCount, hasOrders] = await Promise.all([
+    db.product.count({ where: { tenantId: tenant.id, status: "active" } }),
+    db.order.count({ where: { tenantId: tenant.id } }),
+  ]);
+  const cfg = tenant.config;
+  const steps: [boolean, string, string][] = [
+    [productCount > 0, t("Ajouter votre premier produit"), "/admin/products/new"],
+    [!!cfg.store.phone, t("Renseigner le téléphone et les réseaux sociaux"), "/admin/settings"],
+    [cfg.theme.colors.primary !== "#0f766e" || cfg.theme.preset !== "classic", t("Personnaliser les couleurs de la boutique"), "/admin/design/theme"],
+    [!!cfg.tracking.metaPixelId || !!cfg.tracking.tiktokPixelId, t("Connecter le pixel Facebook ou TikTok"), "/admin/settings"],
+    [cfg.integrations.defaultCarrier !== "manual" || !!cfg.notifications.telegram.chatId, t("Connecter un transporteur ou Telegram"), "/admin/settings/integrations"],
+    [hasOrders > 0, t("Recevoir votre première commande"), "/"],
+  ];
+  const doneCount = steps.filter(([d]) => d).length;
   const statusMeta = (k: string) => tenant.config.orderStatuses.find((s) => s.key === k);
   return (
     <>
@@ -38,6 +52,16 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         <h1>{t("Tableau de bord")}</h1>
         <div className="tabs">{[1, 7, 30, 90].map((d) => <Link key={d} href={`?d=${d}`} className={d === days ? "on" : ""}>{d === 1 ? t("Aujourd'hui") : `${d} ${t("jours")}`}</Link>)}</div>
       </div>
+      {doneCount < steps.length && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <div className="row between"><b>🚀 {t("Démarrage")} — {doneCount}/{steps.length}</b>
+            <div style={{ width: 160, height: 6, background: "var(--c-border)", borderRadius: 4 }}><div style={{ width: `${(doneCount / steps.length) * 100}%`, height: "100%", background: "var(--c-success)", borderRadius: 4 }} /></div>
+          </div>
+          <ul className="checklist" style={{ listStyle: "none", padding: 0, margin: "8px 0 0" }}>
+            {steps.map(([d, l, h]) => <li key={l}><span>{d ? "✅" : "⬜"}</span>{d ? <span className="done">{l}</span> : <Link href={h}>{l} →</Link>}</li>)}
+          </ul>
+        </div>
+      )}
       <div className="kpis">{kpis.map(([l, v]) => <div key={l} className="card kpi"><div className="l">{t(l)}</div><div className="v">{v}</div></div>)}</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 16, marginTop: 16 }}>
         <div className="card">

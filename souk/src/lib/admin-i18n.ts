@@ -65,6 +65,11 @@ const AR: Record<string, string> = {
 AR["Recevez chaque nouvelle commande sur Telegram. Créez un bot avec @BotFather, puis envoyez-lui un message et récupérez votre chat ID."] = "استقبل كل طلب جديد على تيليغرام. أنشئ بوت عبر @BotFather ثم أرسل له رسالة واحصل على chat ID.";
 AR["Nouvelle page"] = "صفحة جديدة";
 AR["Titre (FR) ex: Politique de retour"] = "العنوان (فرنسي) مثال: Politique de retour";
+Object.assign(AR, {
+  "Ajouter votre premier produit": "أضف منتجك الأول", "Renseigner le téléphone et les réseaux sociaux": "أدخل الهاتف وروابط التواصل الاجتماعي",
+  "Personnaliser les couleurs de la boutique": "خصّص ألوان المتجر", "Connecter le pixel Facebook ou TikTok": "اربط بكسل فيسبوك أو تيك توك",
+  "Connecter un transporteur ou Telegram": "اربط شركة توصيل أو تيليغرام", "Recevoir votre première commande": "استقبل طلبك الأول", "Démarrage": "البداية",
+});
 AR["Coût des produits"] = "تكلفة المنتجات";
 AR["Attributs produits personnalisés"] = "خصائص المنتجات المخصصة";
 

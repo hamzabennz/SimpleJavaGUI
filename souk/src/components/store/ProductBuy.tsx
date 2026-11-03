@@ -96,7 +96,7 @@ export function ProductBuy({ product, options, variants, offers = [], flow, lang
               }}>🛒 {t.add_to_cart}</button>
             )}
             {flow !== "cart" && (
-              <div className="card" style={{ borderColor: "var(--c-primary)", borderWidth: 2 }}>
+              <div id="order-form" className="card" style={{ borderColor: "var(--c-primary)", borderWidth: 2 }}>
                 <h3 style={{ marginTop: 0 }}>{t.order_now}</h3>
                 <OrderForm {...checkout} lang={lang} t={t} lines={[line]} allFreeShipping={product.freeShipping} />
               </div>
@@ -104,6 +104,12 @@ export function ProductBuy({ product, options, variants, offers = [], flow, lang
           </>
         )}
       </div>
+      {!soldOut && flow !== "cart" && (
+        <div className="sticky-cta">
+          <div><b>{product.name}</b><div className="price">{dzd(price * qty, lang)}</div></div>
+          <button type="button" className="btn" onClick={() => document.getElementById("order-form")?.scrollIntoView({ behavior: "smooth", block: "start" })}>{t.order_now}</button>
+        </div>
+      )}
     </div>
   );
 }
