@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { dzd } from "@/lib/money";
-import { setTenantStatus, setTenantPlan } from "../admin/actions";
+import { setTenantStatus, setTenantPlan, savePlan } from "../admin/actions";
 import { CreateTenant } from "./CreateTenant";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +53,26 @@ export default async function Platform() {
           </table>
         </div>
         <CreateTenant plans={plans.map((p) => ({ id: p.id, name: p.name }))} />
+        <h2 style={{ marginTop: 32 }}>Plans</h2>
+        <div className="stack">
+          {[...plans, null].map((pl) => {
+            const l = (pl?.limits ?? {}) as Record<string, number>, f = (pl?.features ?? {}) as Record<string, boolean>;
+            return (
+              <form key={pl?.id ?? "new"} action={savePlan} className="card row wrap" style={{ alignItems: "end" }}>
+                {pl && <input type="hidden" name="planId" value={pl.id} />}
+                <div className="field"><label>Nom</label><input name="name" defaultValue={pl?.name ?? ""} placeholder="Nouveau plan" style={{ width: 130 }} required /></div>
+                <div className="field"><label>Prix / mois (DA)</label><input name="priceDzd" type="number" defaultValue={pl?.priceDzd ?? ""} style={{ width: 120 }} /></div>
+                <div className="field"><label>Produits max</label><input name="products" type="number" defaultValue={l.products ?? ""} placeholder="∞" style={{ width: 100 }} /></div>
+                <div className="field"><label>Équipe max</label><input name="staff" type="number" defaultValue={l.staff ?? ""} placeholder="∞" style={{ width: 90 }} /></div>
+                <div className="field"><label>Commandes/mois</label><input name="ordersPerMonth" type="number" defaultValue={l.ordersPerMonth ?? ""} placeholder="∞" style={{ width: 110 }} /></div>
+                {(["customDomain", "pixels", "carriers", "removeBranding"] as const).map((k) => (
+                  <label key={k} className="row" style={{ fontWeight: 500, fontSize: ".85rem" }}><input type="checkbox" name={k} defaultChecked={!!f[k]} style={{ width: "auto" }} /> {k}</label>
+                ))}
+                <button className="btn sm">{pl ? "Enregistrer" : "+ Créer"}</button>
+              </form>
+            );
+          })}
+        </div>
       </main>
     </div>
   );

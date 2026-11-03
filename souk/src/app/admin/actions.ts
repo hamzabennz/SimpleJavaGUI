@@ -437,3 +437,19 @@ export async function editOrder(orderId: string, input: { name: string; phone: s
   revalidatePath(`/admin/orders/${o.id}`);
   return { ok: true };
 }
+
+// ---------- plans (super admin) ----------
+export async function savePlan(fd: FormData) {
+  await requireSuperAdmin();
+  const id = String(fd.get("planId") || "");
+  const num = (k: string) => (fd.get(k) === "" || fd.get(k) === null ? undefined : Math.max(0, Number(fd.get(k))));
+  const data = {
+    name: String(fd.get("name") ?? "").trim() || "Plan",
+    priceDzd: num("priceDzd") ?? 0,
+    limits: Object.fromEntries(Object.entries({ products: num("products"), staff: num("staff"), ordersPerMonth: num("ordersPerMonth") }).filter(([, v]) => v !== undefined)),
+    features: { customDomain: fd.get("customDomain") === "on", pixels: fd.get("pixels") === "on", removeBranding: fd.get("removeBranding") === "on", carriers: fd.get("carriers") === "on" },
+  };
+  if (id) await db.plan.update({ where: { id }, data });
+  else await db.plan.create({ data }).catch(() => null);
+  revalidatePath("/platform");
+}
