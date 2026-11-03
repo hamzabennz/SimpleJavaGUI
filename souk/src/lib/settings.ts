@@ -74,6 +74,8 @@ export const SettingsSchema = z.object({
     freeShippingOver: z.number().int().nullable().default(null),
     successMessage: LocalizedSchema.default({ ar: "شكراً! سنتصل بك قريباً لتأكيد طلبك.", fr: "Merci ! Nous vous appellerons bientôt pour confirmer votre commande." }),
     duplicateWindowHours: z.number().default(24),
+    /** WhatsApp confirmation message. Placeholders: {name} {number} {products} {total} {wilaya} {store} */
+    whatsappTemplate: z.string().max(1000).default("السلام عليكم {name} 👋\nنحن {store}. نؤكد طلبكم رقم #{number}:\n{products}\nالمجموع: {total} (الدفع عند الاستلام)\nالتوصيل إلى: {wilaya}\nهل تؤكدون الطلب؟ ✅"),
     /** Round-robin new orders to confirmers */
     autoAssign: z.boolean().default(false),
   }).default({}),

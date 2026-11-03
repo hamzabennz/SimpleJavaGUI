@@ -572,3 +572,10 @@ function parseCsv(text: string): string[][] {
   row.push(cell); if (row.some((c) => c !== "")) rows.push(row);
   return rows;
 }
+
+export async function saveWhatsappTemplate(fd: FormData) {
+  const { tenant } = await requireAdmin("design");
+  const tpl = String(fd.get("tpl") ?? "").slice(0, 1000);
+  await db.tenant.update({ where: { id: tenant.id }, data: { settings: mergeSettings(tenant.config, { checkout: { whatsappTemplate: tpl } }) as any } });
+  revalidatePath("/admin/settings");
+}

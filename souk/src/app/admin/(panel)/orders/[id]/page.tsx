@@ -24,6 +24,10 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
   const label = (k: string | null) => statuses.find((s) => s.key === k)?.label ?? k;
   const products = ["shipped", "delivered", "returned"].includes(o.status) ? [] : await db.product.findMany({ where: { tenantId: tenant.id, status: "active" }, include: { variants: true } });
   const team = await db.membership.findMany({ where: { tenantId: tenant.id }, include: { user: { select: { id: true, name: true } } } });
+  const waText = tenant.config.checkout.whatsappTemplate
+    .replaceAll("{name}", o.name).replaceAll("{number}", String(o.number)).replaceAll("{store}", tenant.name)
+    .replaceAll("{products}", o.items.map((i) => `• ${i.name}${i.variant ? ` (${i.variant})` : ""} × ${i.qty}`).join("\n"))
+    .replaceAll("{total}", dzd(o.total, "ar")).replaceAll("{wilaya}", `${wilayaName(o.wilayaCode, "ar")}${o.commune ? " - " + o.commune : ""}`);
   const customFields = tenant.config.checkout.fields.filter((f) => (o.customFields as any)?.[f.key] !== undefined);
   return (
     <>
@@ -45,7 +49,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
             <p style={{ margin: 0 }}><b>{o.name}</b></p>
             <p className="row" style={{ margin: "6px 0" }}>
               <a href={`tel:${o.phone}`} className="btn sm" dir="ltr">📞 {o.phone}</a>
-              <a href={`https://wa.me/213${o.phone.slice(1)}`} target="_blank" className="btn sm ghost">{t("💬 WhatsApp")}</a>
+              <a href={`https://wa.me/213${o.phone.slice(1)}?text=${encodeURIComponent(waText)}`} target="_blank" className="btn sm ghost">{t("💬 WhatsApp")}</a>
             </p>
             <p style={{ margin: 0 }}>{wilayaName(o.wilayaCode, lang)} · {o.commune ?? "—"} · {o.deliveryType === "desk" ? t("Stop desk") : t("Domicile")}</p>
             <p className="muted" style={{ margin: "6px 0" }}>{t("Historique")} : {delivered} {t("livrée(s)")}, {returned} {t("retour(s)")}</p>
