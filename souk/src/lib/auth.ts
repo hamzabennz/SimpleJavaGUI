@@ -43,6 +43,15 @@ export const PERMISSIONS = {
   stock: ["products"],
 } as Record<string, string[]>;
 
+/** Logged-in user regardless of tenant (platform console). */
+export async function requireUser() {
+  const tok = (await cookies()).get(COOKIE)?.value;
+  const s = tok ? verify(tok) : null;
+  const user = s ? await db.user.findUnique({ where: { id: s.uid } }) : null;
+  if (!user) redirect("/admin/login");
+  return user;
+}
+
 /** Current admin for the current tenant, or redirect to login. */
 export async function requireAdmin(permission?: string) {
   const tenant = await getTenant();

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 import { dzd } from "@/lib/money";
 import { setTenantStatus, setTenantPlan, savePlan } from "../admin/actions";
 import { CreateTenant } from "./CreateTenant";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 /** Platform owner console: manage tenants & plans. Requires User.isSuperAdmin. */
 export default async function Platform() {
-  const { user } = await requireAdmin();
+  const user = await requireUser();
   if (!user.isSuperAdmin) redirect("/admin");
   const since = new Date(Date.now() - 30 * 864e5);
   const [tenants, plans, orders] = await Promise.all([

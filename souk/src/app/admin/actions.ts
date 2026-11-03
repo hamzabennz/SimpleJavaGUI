@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { createSession, destroySession, requireAdmin } from "@/lib/auth";
+import { createSession, destroySession, requireAdmin, requireUser } from "@/lib/auth";
 import { getTenant } from "@/lib/tenant";
 import { mergeSettings } from "@/lib/settings";
 import { carriers } from "@/lib/carriers";
@@ -32,7 +32,7 @@ export async function login(_: unknown, fd: FormData) {
     return { error: "Ce compte n'a pas accès à cette boutique" };
   }
   await createSession(user.id);
-  redirect("/admin");
+  redirect(!tenant && user.isSuperAdmin ? "/platform" : "/admin");
 }
 export async function logout() {
   await destroySession();
@@ -297,7 +297,7 @@ export async function removeStaff(membershipId: string) {
 
 // ---------- platform (super admin) ----------
 async function requireSuperAdmin() {
-  const { user } = await requireAdmin();
+  const user = await requireUser();
   if (!user.isSuperAdmin) redirect("/admin");
   return user;
 }
