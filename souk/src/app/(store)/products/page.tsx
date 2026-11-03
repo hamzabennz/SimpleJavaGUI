@@ -30,10 +30,10 @@ export default async function Products({ searchParams }: { searchParams: Promise
           <Link href="/products" className={!cat ? "on" : ""}>{t.all}</Link>
           {cats.map((c) => <Link key={c.id} href={`/products?c=${c.slug}`} className={cat?.id === c.id ? "on" : ""}>{tr(c.name, lang)}</Link>)}
         </div>
-        <form className="row">
+        <form className="row wrap" style={{ flex: "1 1 280px", justifyContent: "flex-end" }}>
           {cat && <input type="hidden" name="c" value={cat.slug} />}
-          <input name="q" defaultValue={q} placeholder={t.search} style={{ width: 200 }} />
-          <select name="sort" defaultValue={sp.sort} style={{ width: 150 }}>
+          <input name="q" defaultValue={q} placeholder={t.search} style={{ flex: "1 1 140px", minWidth: 0, maxWidth: 240 }} />
+          <select name="sort" defaultValue={sp.sort} style={{ width: "auto" }}>
             <option value="">↕</option><option value="price_asc">↑ DA</option><option value="price_desc">↓ DA</option>
           </select>
           <button className="btn sm">{t.find}</button>
