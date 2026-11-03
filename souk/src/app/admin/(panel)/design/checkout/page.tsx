@@ -16,7 +16,7 @@ export default async function CheckoutBuilder({ searchParams }: { searchParams: 
       <h1>{attrs ? t("Attributs produits personnalisés") : t("Formulaire de commande")}</h1>
       {attrs
         ? <FormBuilder key="a" target="productAttributes" initial={tenant.config.productAttributes} />
-        : <FormBuilder key="c" target="checkout" initial={c.fields} extra={{ deskEnabled: c.deskEnabled, freeShippingOver: c.freeShippingOver }} />}
+        : <FormBuilder key="c" target="checkout" initial={c.fields} extra={{ deskEnabled: c.deskEnabled, freeShippingOver: c.freeShippingOver, blockAfterReturns: c.blockAfterReturns }} />}
     </>
   );
 }

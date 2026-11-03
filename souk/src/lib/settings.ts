@@ -76,6 +76,8 @@ export const SettingsSchema = z.object({
     duplicateWindowHours: z.number().default(24),
     /** WhatsApp confirmation message. Placeholders: {name} {number} {products} {total} {wilaya} {store} */
     whatsappTemplate: z.string().max(1000).default("السلام عليكم {name} 👋\nنحن {store}. نؤكد طلبكم رقم #{number}:\n{products}\nالمجموع: {total} (الدفع عند الاستلام)\nالتوصيل إلى: {wilaya}\nهل تؤكدون الطلب؟ ✅"),
+    /** Refuse orders from phones with at least N returned orders (0 = off) */
+    blockAfterReturns: z.number().int().min(0).max(20).default(0),
     /** Round-robin new orders to confirmers */
     autoAssign: z.boolean().default(false),
   }).default({}),

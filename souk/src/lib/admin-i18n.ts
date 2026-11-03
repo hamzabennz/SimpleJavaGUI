@@ -81,6 +81,8 @@ Object.assign(AR, { "Avis clients": "آراء الزبائن", "⭐ Avis clients
 AR["Proposez un 2e produit à prix spécial dans le formulaire de commande."] = "اقترح منتجاً ثانياً بسعر خاص في استمارة الطلب.";
 Object.assign(AR, { "Importer des produits (CSV)": "استيراد منتجات (CSV)", "Importer": "استيراد", "Télécharger le modèle": "تحميل النموذج", "Dupliquer": "نسخ" });
 AR["Message de confirmation WhatsApp"] = "رسالة التأكيد عبر واتساب";
+AR["risque"] = "خطر";
+AR["Bloquer les numéros ayant au moins N retours (0 = désactivé)"] = "حظر الأرقام التي لديها N مرتجعات على الأقل (0 = معطّل)";
 AR["Coût des produits"] = "تكلفة المنتجات";
 AR["Attributs produits personnalisés"] = "خصائص المنتجات المخصصة";
 

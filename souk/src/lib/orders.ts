@@ -100,6 +100,10 @@ export async function createOrder(tenant: CurrentTenant, form: Record<string, un
     update: { name: String(data.name ?? phone) },
   });
   if (customer.blacklisted && !meta.skipBlacklist) throw new OrderError("blocked");
+  const maxReturns = tenant.config.checkout.blockAfterReturns;
+  if (maxReturns > 0 && !meta.skipBlacklist && (await db.order.count({ where: { tenantId: tenant.id, phone, status: "returned" } })) >= maxReturns) {
+    throw new OrderError("blocked");
+  }
 
   const custom: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(data)) if (!(BUILTIN_ORDER_KEYS as readonly string[]).includes(k)) custom[k] = v;

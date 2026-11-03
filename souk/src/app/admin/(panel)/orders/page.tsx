@@ -29,6 +29,13 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
   // duplicate detection: same phone with >1 order in the window
   const windowStart = new Date(Date.now() - tenant.config.checkout.duplicateWindowHours * 3600_000);
   const dupPhones = new Set((await db.order.groupBy({ by: ["phone"], where: { tenantId: tenant.id, createdAt: { gte: windowStart } }, _count: true, having: { phone: { _count: { gt: 1 } } } })).map((d) => d.phone));
+  // risk score per phone: past returns vs deliveries
+  const hist = await db.order.groupBy({ by: ["phone", "status"], where: { tenantId: tenant.id, phone: { in: orders.map((o) => o.phone) }, status: { in: ["delivered", "returned"] } }, _count: true });
+  const risk = (phone: string) => {
+    const r = hist.find((h) => h.phone === phone && h.status === "returned")?._count ?? 0;
+    const d = hist.find((h) => h.phone === phone && h.status === "delivered")?._count ?? 0;
+    return r >= 2 || (r >= 1 && r >= d) ? { r, d } : null;
+  };
   const statuses = tenant.config.orderStatuses.map((s) => ({ key: s.key, label: s.label[lang] || s.label.fr, color: s.color }));
   const qs = (o: Record<string, string | undefined>) => "?" + new URLSearchParams(Object.entries({ s: sp.s, q, mine: sp.mine, ...o }).filter(([, v]) => v) as [string, string][]).toString();
   return (
@@ -77,6 +84,7 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
                 <td>
                   {o.name} {o.customer?.blacklisted && <span className="badge" style={{ background: "#000" }}>{t("⛔ blacklist")}</span>}
                   {dupPhones.has(o.phone) && <span className="badge" style={{ background: "#f59e0b" }}>{t("doublon?")}</span>}
+                  {(() => { const k = risk(o.phone); return k && <span className="badge" style={{ background: "#dc2626" }} title={`${k.r} retour(s) / ${k.d} livrée(s)`}>⚠ {t("risque")} {k.r}↩</span>; })()}
                   <div className="muted" dir="ltr" style={{ fontSize: ".85rem" }}>{o.phone}{o.source !== "storefront" && <> · {o.source}</>}</div>
                 </td>
                 <td>{wilayaName(o.wilayaCode, lang)}<div className="muted" style={{ fontSize: ".8rem" }}>{o.deliveryType === "desk" ? t("Stop desk") : t("Domicile")}</div></td>

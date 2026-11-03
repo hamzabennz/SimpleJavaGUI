@@ -9,7 +9,7 @@ const BUILTIN = ["name", "phone", "wilaya", "commune", "address", "delivery_type
 const TYPES: [FieldDef["type"], string][] = [["text", "Texte"], ["textarea", "Texte long"], ["number", "Nombre"], ["email", "Email"], ["phone", "Téléphone"], ["select", "Liste"], ["radio", "Choix unique"], ["checkbox", "Case à cocher"], ["date", "Date"]];
 
 /** Generic schema editor: used for the checkout form and the product attributes. */
-export function FormBuilder({ initial, target, extra }: { initial: FieldDef[]; target: "checkout" | "productAttributes"; extra?: { deskEnabled: boolean; freeShippingOver: number | null } }) {
+export function FormBuilder({ initial, target, extra }: { initial: FieldDef[]; target: "checkout" | "productAttributes"; extra?: { deskEnabled: boolean; freeShippingOver: number | null; blockAfterReturns: number } }) {
   const t = useAdminT();
   const [fields, setFields] = useState(initial);
   const [opts, setOpts] = useState(extra);
@@ -74,6 +74,8 @@ export function FormBuilder({ initial, target, extra }: { initial: FieldDef[]; t
             <label className="row" style={{ fontWeight: 500 }}><input type="checkbox" style={{ width: "auto" }} checked={opts.deskEnabled} onChange={(e) => setOpts({ ...opts, deskEnabled: e.target.checked })} /> {t("Proposer le Stop desk")}</label>
             <div className="field"><label>Livraison gratuite à partir de (DA, vide = jamais)</label>
               <input type="number" value={opts.freeShippingOver ?? ""} onChange={(e) => setOpts({ ...opts, freeShippingOver: e.target.value === "" ? null : Number(e.target.value) })} style={{ maxWidth: 200 }} /></div>
+            <div className="field"><label>{t("Bloquer les numéros ayant au moins N retours (0 = désactivé)")}</label>
+              <input type="number" min={0} max={20} value={opts.blockAfterReturns} onChange={(e) => setOpts({ ...opts, blockAfterReturns: Number(e.target.value) || 0 })} style={{ maxWidth: 120 }} /></div>
           </div>
         )}
         <button className="btn lg" onClick={save} disabled={pending}>{pending ? "..." : saved ? t("Enregistré ✓") : t("Enregistrer")}</button>
