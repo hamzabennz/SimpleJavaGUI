@@ -9,6 +9,8 @@ export const fieldTypes = [
   "text", "textarea", "phone", "email", "number", "select", "radio", "checkbox", "date",
   // built-in specialised widgets
   "wilaya", "commune", "delivery_type",
+  // admin-only: URL + upload button
+  "image",
 ] as const;
 export type FieldType = (typeof fieldTypes)[number];
 
@@ -55,6 +57,9 @@ export function buildValidator(fields: FieldDef[]) {
         break;
       case "email":
         s = z.string().email("invalid_email");
+        break;
+      case "image":
+        s = z.string().refine((v) => /^(https?:\/\/|\/uploads\/)/.test(v), "invalid_format");
         break;
       case "number":
       case "wilaya": {

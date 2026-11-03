@@ -3,6 +3,7 @@ import { useAdminT } from "@/components/AdminLang";
 import { useState, useTransition } from "react";
 import { saveSettings } from "../../actions";
 import type { Settings } from "@/lib/settings";
+import { FieldInput } from "@/components/FieldInput";
 
 export function SettingsForm({ initial }: { initial: Settings }) {
   const t = useAdminT();
@@ -22,7 +23,7 @@ export function SettingsForm({ initial }: { initial: Settings }) {
           <div className="field half"><label>{t("الشعار AR")}</label><input dir="rtl" value={s.store.tagline.ar} onChange={(e) => store("tagline", { ...s.store.tagline, ar: e.target.value })} /></div>
           <div className="field half"><label>{t("Bandeau d'annonce FR")}</label><input value={s.store.announcement?.fr ?? ""} onChange={(e) => store("announcement", { ar: s.store.announcement?.ar ?? "", fr: e.target.value })} /></div>
           <div className="field half"><label>{t("شريط الإعلان AR")}</label><input dir="rtl" value={s.store.announcement?.ar ?? ""} onChange={(e) => store("announcement", { fr: s.store.announcement?.fr ?? "", ar: e.target.value })} /></div>
-          {text("logo", "Logo (URL)", "ltr")}{text("phone", "Téléphone", "ltr")}{text("whatsapp", "WhatsApp", "ltr")}{text("email", "Email", "ltr")}
+          <FieldInput field={{ key: "logo", type: "image", label: { fr: "Logo", ar: "الشعار" }, required: false, enabled: true, width: "half" }} lang="fr" value={s.store.logo ?? ""} onChange={(v) => store("logo", v || undefined)} />{text("phone", "Téléphone", "ltr")}{text("whatsapp", "WhatsApp", "ltr")}{text("email", "Email", "ltr")}
           {text("facebook", "Facebook", "ltr")}{text("instagram", "Instagram", "ltr")}{text("tiktok", "TikTok", "ltr")}
         </div>
       </div>

@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import type { FieldDef } from "@/lib/forms";
 
 type Props = {
@@ -46,6 +47,8 @@ export function FieldInput({ field, lang, value, error, onChange, options, choos
         </div>
       );
       break;
+    case "image":
+      return <ImageField field={field} label={label} value={value} onChange={onChange} />;
     case "checkbox":
       return (
         <div className={`field ${field.width}`}>
@@ -72,6 +75,32 @@ export function FieldInput({ field, lang, value, error, onChange, options, choos
       <label htmlFor={`f_${field.key}`}>{label}{field.required && <span style={{ color: "var(--c-danger)" }}> *</span>}</label>
       {input}
       {error && <span className="err">{error}</span>}
+    </div>
+  );
+}
+
+function ImageField({ field, label, value, onChange }: { field: FieldDef; label: string; value?: string; onChange?: (v: string) => void }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  return (
+    <div className={`field ${field.width}`}>
+      <label>{label}</label>
+      <div className="row">
+        {value && <img src={value} alt="" style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 6 }} />}
+        <input dir="ltr" name={field.key} value={value ?? ""} placeholder="https://…" onChange={(e) => onChange?.(e.target.value)} />
+        <label className="btn sm ghost" style={{ whiteSpace: "nowrap" }}>
+          {busy ? "…" : "⬆"}
+          <input type="file" accept="image/*" hidden onChange={async (e) => {
+            const f = e.target.files?.[0]; if (!f) return;
+            setBusy(true); setErr("");
+            const fd = new FormData(); fd.append("files", f);
+            const r = await fetch("/api/upload", { method: "POST", body: fd }).then((x) => x.json()).catch(() => ({ error: "Erreur réseau" }));
+            setBusy(false); e.target.value = "";
+            if (r.error) setErr(r.error); else onChange?.(r.urls[0]);
+          }} />
+        </label>
+      </div>
+      {err && <span className="err">{err}</span>}
     </div>
   );
 }

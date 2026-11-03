@@ -14,7 +14,7 @@ export const sectionTypes: Record<string, { label: { ar: string; fr: string }; f
     fields: [
       f("title_ar", "text", L("العنوان (عربي)", "Titre (AR)")), f("title_fr", "text", L("العنوان (فرنسي)", "Titre (FR)")),
       f("subtitle_ar", "textarea", L("النص (عربي)", "Sous-titre (AR)")), f("subtitle_fr", "textarea", L("النص (فرنسي)", "Sous-titre (FR)")),
-      f("image", "text", L("رابط الصورة", "URL de l'image")),
+      f("image", "image", L("الصورة", "Image")),
       f("cta_ar", "text", L("نص الزر (عربي)", "Bouton (AR)")), f("cta_fr", "text", L("نص الزر (فرنسي)", "Bouton (FR)")),
       f("cta_link", "text", L("رابط الزر", "Lien du bouton")),
       f("align", "select", L("المحاذاة", "Alignement"), { options: [{ value: "start", label: L("بداية", "Début") }, { value: "center", label: L("وسط", "Centre") }] }),
@@ -65,7 +65,7 @@ export const sectionTypes: Record<string, { label: { ar: string; fr: string }; f
   image_text: {
     label: L("صورة ونص", "Image + texte"),
     fields: [
-      f("image", "text", L("رابط الصورة", "URL de l'image")),
+      f("image", "image", L("الصورة", "Image")),
       f("title_ar", "text", L("العنوان (عربي)", "Titre (AR)")), f("title_fr", "text", L("العنوان (فرنسي)", "Titre (FR)")),
       f("body_ar", "textarea", L("النص (عربي)", "Texte (AR)")), f("body_fr", "textarea", L("النص (فرنسي)", "Texte (FR)")),
       f("reverse", "checkbox", L("الصورة على الجهة الأخرى", "Image de l'autre côté")),
