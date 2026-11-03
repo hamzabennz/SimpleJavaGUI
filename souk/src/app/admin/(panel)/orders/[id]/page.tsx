@@ -23,7 +23,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
   return (
     <>
       <Link href="/admin/orders" className="muted">← Commandes</Link>
-      <h1>Commande #{o.number}</h1>
+      <div className="row between wrap"><h1>Commande #{o.number}</h1><a className="btn ghost sm" target="_blank" href={`/admin/print?id=${o.id}`}>🖨 Imprimer</a></div>
       <div className="card" style={{ marginBottom: 16 }}><StatusButtons orderId={o.id} current={o.status} statuses={statuses} /></div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))", gap: 16 }}>
         <div className="stack">

@@ -22,6 +22,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     ["/admin/design/checkout", "📝 Formulaire de commande"],
     ["/admin/settings", "⚙️ Paramètres"],
     ["/admin/settings/integrations", "🔌 Intégrations"],
+    ["/admin/settings/domains", "🌐 Domaines"],
     ["/admin/staff", "🧑‍💼 Équipe"],
   ];
   return (

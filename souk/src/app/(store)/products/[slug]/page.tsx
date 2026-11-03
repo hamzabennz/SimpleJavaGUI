@@ -32,8 +32,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   });
   const attrs = tenant.config.productAttributes.filter((a) => a.enabled && (product.attributes as any)?.[a.key]);
   const related = await db.product.findMany({ where: { tenantId: tenant.id, status: "active", categoryId: product.categoryId, NOT: { id: product.id } }, take: 4 });
+  const jsonLd = {
+    "@context": "https://schema.org", "@type": "Product", name: tr(product.name, lang), image: product.images, description: tr(product.description, lang),
+    offers: { "@type": "Offer", priceCurrency: "DZD", price: product.price, availability: product.trackStock && product.stock <= 0 && !product.variants.some((v) => v.stock > 0) ? "https://schema.org/OutOfStock" : "https://schema.org/InStock" },
+  };
   return (
     <div className="container">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <ProductBuy
         product={{ id: product.id, slug: product.slug, name: tr(product.name, lang), price: product.price, compareAt: product.compareAt, images: product.images, trackStock: product.trackStock, stock: product.stock, freeShipping: !!(product.extra as any)?.freeShipping }}
         options={options.map(({ name, values }) => ({ name, values }))}

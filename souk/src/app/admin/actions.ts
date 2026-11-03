@@ -321,3 +321,33 @@ export async function createManualOrder(input: { form: Record<string, string>; l
     throw e;
   }
 }
+
+// ---------- custom domains ----------
+export async function addDomain(_: unknown, fd: FormData) {
+  const { tenant } = await requireAdmin("*");
+  const { getPlan } = await import("@/lib/plans");
+  if (!(await getPlan(tenant.id)).features.customDomain) return { error: "Les domaines personnalisés sont disponibles à partir du plan Pro." };
+  const host = String(fd.get("host") ?? "").toLowerCase().trim().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  if (!/^([a-z0-9-]+\.)+[a-z]{2,}$/.test(host)) return { error: "Domaine invalide" };
+  try { await db.domain.create({ data: { tenantId: tenant.id, host } }); } catch { return { error: "Domaine déjà utilisé" }; }
+  revalidatePath("/admin/settings/domains");
+  return { ok: true };
+}
+export async function verifyDomain(id: string) {
+  const { tenant } = await requireAdmin("*");
+  const d = await db.domain.findFirst({ where: { id, tenantId: tenant.id } });
+  if (!d) return;
+  const { resolveCname, resolve4 } = await import("node:dns/promises");
+  const target = (process.env.CNAME_TARGET ?? `stores.${(process.env.ROOT_DOMAIN ?? "").split(":")[0]}`).toLowerCase();
+  const ip = process.env.SERVER_IP;
+  const cname = await resolveCname(d.host).catch(() => [] as string[]);
+  const a = await resolve4(d.host).catch(() => [] as string[]);
+  const ok = cname.some((c) => c.toLowerCase() === target) || (!!ip && a.includes(ip));
+  await db.domain.update({ where: { id }, data: { verified: ok } });
+  revalidatePath("/admin/settings/domains");
+}
+export async function removeDomain(id: string) {
+  const { tenant } = await requireAdmin("*");
+  await db.domain.deleteMany({ where: { id, tenantId: tenant.id } });
+  revalidatePath("/admin/settings/domains");
+}

@@ -33,6 +33,7 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
         <div className="row wrap">
           <Link href="/admin/orders/new" className="btn sm">+ Commande manuelle</Link>
           <ShipButton label="Expédier les commandes confirmées" />
+          <a className="btn ghost sm" target="_blank" href={`/admin/print?s=${sp.s ?? "confirmed"}`}>🖨 Imprimer ({statuses.find((x) => x.key === (sp.s ?? "confirmed"))?.label})</a>
           <a className="btn ghost sm" href={`/admin/orders/export${qs({})}`}>⬇ Export CSV</a>
         </div>
       </div>

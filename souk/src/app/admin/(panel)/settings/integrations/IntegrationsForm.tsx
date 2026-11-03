@@ -3,9 +3,9 @@ import { useState, useTransition } from "react";
 import { saveIntegrations } from "../../../actions";
 
 type Adapter = { id: string; name: string; credentials: { key: string; label: string; secret?: boolean }[] };
-type Props = { adapters: Adapter[]; initial: { defaultCarrier: string; carriers: Record<string, Record<string, string>>; metaAccessToken?: string; tiktokAccessToken?: string } };
+type Props = { webhookBase: string; slug: string; adapters: Adapter[]; initial: { defaultCarrier: string; carriers: Record<string, Record<string, string>>; metaAccessToken?: string; tiktokAccessToken?: string } };
 
-export function IntegrationsForm({ adapters, initial }: Props) {
+export function IntegrationsForm({ webhookBase, slug, adapters, initial }: Props) {
   const [s, setS] = useState(initial);
   const [pending, start] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -28,6 +28,11 @@ export function IntegrationsForm({ adapters, initial }: Props) {
                     onChange={(e) => { setS({ ...s, carriers: { ...s.carriers, [a.id]: { ...s.carriers[a.id], [c.key]: e.target.value } } }); setSaved(false); }} />
                 </div>
               ))}
+            </div>
+            <div className="field"><label>Webhook de statut (à coller chez {a.name})</label>
+              {s.carriers[a.id]?.webhookKey
+                ? <input readOnly dir="ltr" value={`${webhookBase}/${a.id}/${slug}?key=${s.carriers[a.id].webhookKey}`} onFocus={(e) => e.target.select()} />
+                : <button type="button" className="btn sm ghost" style={{ alignSelf: "start" }} onClick={() => setS({ ...s, carriers: { ...s.carriers, [a.id]: { ...s.carriers[a.id], webhookKey: crypto.randomUUID().replace(/-/g, "") } } })}>Générer une URL de webhook</button>}
             </div>
           </div>
         ))}
