@@ -98,7 +98,7 @@ const ProductInput = z.object({
   categoryId: z.string().nullable(),
   trackStock: z.boolean(),
   stock: z.coerce.number().int(),
-  images: z.array(z.string().url()),
+  images: z.array(z.string().refine((u) => /^https?:\/\//.test(u) || u.startsWith("/uploads/"), "URL invalide")),
   attributes: z.record(z.unknown()),
   freeShipping: z.boolean(),
   offers: z.array(z.object({ qty: z.coerce.number().int().min(2), price: z.coerce.number().int().min(0), label: z.object({ ar: z.string(), fr: z.string() }) })).default([]),

@@ -21,6 +21,7 @@ export function ProductForm({ initial, categories, attributeFields }: Props) {
   const [err, setErr] = useState("");
   const [ok, setOk] = useState(false);
   const [pending, start] = useTransition();
+  const [uploading, setUploading] = useState(false);
   const set = <K extends keyof ProductInputT>(k: K, v: ProductInputT[K]) => { setP((s) => ({ ...s, [k]: v })); setOk(false); };
 
   function regenerateVariants(options: ProductInputT["options"]) {
@@ -70,6 +71,18 @@ export function ProductForm({ initial, categories, attributeFields }: Props) {
             <input name="url" type="url" placeholder="https://... (URL de l'image)" />
             <button className="btn sm ghost">Ajouter</button>
           </form>
+          <label className="btn sm outline" style={{ alignSelf: "start" }}>
+            {uploading ? "Envoi..." : "⬆ Téléverser des images"}
+            <input type="file" accept="image/*" multiple hidden disabled={uploading} onChange={async (e) => {
+              const files = Array.from(e.target.files ?? []);
+              if (!files.length) return;
+              setUploading(true); setErr("");
+              const fd = new FormData(); files.forEach((f) => fd.append("files", f));
+              const r = await fetch("/api/upload", { method: "POST", body: fd }).then((r) => r.json()).catch(() => ({ error: "Erreur réseau" }));
+              setUploading(false); e.target.value = "";
+              if (r.error) setErr(r.error); else set("images", [...p.images, ...r.urls]);
+            }} />
+          </label>
         </div>
         <div className="card stack">
           <h3 style={{ margin: 0 }}>Options & variantes</h3>
