@@ -75,6 +75,7 @@ AR["Appliquer à la sélection"] = "تطبيق على المحدد";
 AR["Modifier la commande"] = "تعديل الطلب";
 AR["Frais de livraison"] = "مصاريف التوصيل";
 AR["Annuler"] = "إلغاء";
+AR["Stock faible"] = "مخزون منخفض";
 AR["Coût des produits"] = "تكلفة المنتجات";
 AR["Attributs produits personnalisés"] = "خصائص المنتجات المخصصة";
 

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { dzd } from "@/lib/money";
 import { wilayaName } from "@/lib/algeria";
+import { tr } from "@/lib/i18n";
 
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ d?: string }> }) {
   const { tenant } = await requireAdmin();
@@ -44,6 +45,10 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     [cfg.integrations.defaultCarrier !== "manual" || !!cfg.notifications.telegram.chatId, t("Connecter un transporteur ou Telegram"), "/admin/settings/integrations"],
     [hasOrders > 0, t("Recevoir votre première commande"), "/"],
   ];
+  const lowStock = await db.$queryRaw<{ name: unknown; id: string; stock: number }[]>`
+    SELECT p.id, p.name, COALESCE((SELECT SUM(v.stock) FROM "Variant" v WHERE v."productId" = p.id), p.stock)::int AS stock
+    FROM "Product" p WHERE p."tenantId" = ${tenant.id} AND p."trackStock" = true AND p.status = 'active'
+    AND COALESCE((SELECT SUM(v.stock) FROM "Variant" v WHERE v."productId" = p.id), p.stock) < 5 LIMIT 10`;
   const doneCount = steps.filter(([d]) => d).length;
   const statusMeta = (k: string) => tenant.config.orderStatuses.find((s) => s.key === k);
   return (
@@ -60,6 +65,11 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           <ul className="checklist" style={{ listStyle: "none", padding: 0, margin: "8px 0 0" }}>
             {steps.map(([d, l, h]) => <li key={l}><span>{d ? "✅" : "⬜"}</span>{d ? <span className="done">{l}</span> : <Link href={h}>{l} →</Link>}</li>)}
           </ul>
+        </div>
+      )}
+      {lowStock.length > 0 && (
+        <div className="alert" style={{ marginBottom: 16 }}>
+          ⚠️ {t("Stock faible")} : {lowStock.map((p, i) => <span key={p.id}>{i > 0 && ", "}<Link href={`/admin/products/${p.id}`} style={{ textDecoration: "underline" }}>{tr(p.name, lang)} ({p.stock})</Link></span>)}
         </div>
       )}
       <div className="kpis">{kpis.map(([l, v]) => <div key={l} className="card kpi"><div className="l">{t(l)}</div><div className="v">{v}</div></div>)}</div>
