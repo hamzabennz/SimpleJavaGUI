@@ -15,7 +15,18 @@ const Body = z.object({
  * - Cart changed, no phone yet  → row keyed by visitorId (stage "cart")
  * - Phone typed in order form   → row keyed by phone (stage "checkout"), visitor row merged into it
  */
+const hits = new Map<string, number[]>();
+function limited(key: string, max = 60, windowMs = 10 * 60_000) {
+  const now = Date.now();
+  const arr = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
+  arr.push(now); hits.set(key, arr);
+  if (hits.size > 50_000) hits.clear(); // bound memory
+  return arr.length > max;
+}
+
 export async function POST(req: Request) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "local";
+  if (limited(ip)) return NextResponse.json({}, { status: 429 });
   const tenant = await getTenant();
   if (!tenant) return NextResponse.json({}, { status: 404 });
   const b = Body.safeParse(await req.json().catch(() => null));

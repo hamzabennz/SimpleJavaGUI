@@ -50,6 +50,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     SELECT p.id, p.name, COALESCE((SELECT SUM(v.stock) FROM "Variant" v WHERE v."productId" = p.id), p.stock)::int AS stock
     FROM "Product" p WHERE p."tenantId" = ${tenant.id} AND p."trackStock" = true AND p.status = 'active'
     AND COALESCE((SELECT SUM(v.stock) FROM "Variant" v WHERE v."productId" = p.id), p.stock) < 5 LIMIT 10`;
+  const openCarts = await db.abandonedCheckout.groupBy({ by: ["stage"], where: { tenantId: tenant.id, recovered: false, updatedAt: { gte: since } }, _count: true, _sum: { total: true } });
+  const cartsWithPhone = openCarts.find((c) => c.stage === "checkout");
+  const cartsAnon = openCarts.find((c) => c.stage === "cart");
   const doneCount = steps.filter(([d]) => d).length;
   const statusMeta = (k: string) => tenant.config.orderStatuses.find((s) => s.key === k);
   return (
@@ -74,6 +77,14 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
         </div>
       )}
       <div className="kpis">{kpis.map(([l, v]) => <div key={l} className="card kpi"><div className="l">{t(l)}</div><div className="v">{v}</div></div>)}</div>
+      {(cartsWithPhone || cartsAnon) && (
+        <Link href="/admin/abandoned" className="card row between wrap" style={{ marginTop: 16, borderColor: "var(--c-accent)" }}>
+          <span className="row" style={{ gap: 10 }}><Icon name="cart" />
+            <span><b>{t("Paniers abandonnés")}</b> · {cartsWithPhone?._count ?? 0} {t("à relancer")} ({dzd(cartsWithPhone?._sum.total ?? 0, lang)}) · {cartsAnon?._count ?? 0} {t("sans contact")}</span>
+          </span>
+          <span className="btn sm">{t("Voir")} →</span>
+        </Link>
+      )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 16, marginTop: 16 }}>
         <div className="card">
           <h3 style={{ marginTop: 0 }}>{t("Par statut")}</h3>
