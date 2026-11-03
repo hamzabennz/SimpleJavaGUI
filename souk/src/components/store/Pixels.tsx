@@ -3,9 +3,9 @@ import Script from "next/script";
 
 declare global { interface Window { fbq?: any; ttq?: any } }
 
-export function track(event: string, data?: Record<string, unknown>) {
-  try { window.fbq?.("track", event, data); } catch {}
-  try { window.ttq?.track(event === "Purchase" ? "CompletePayment" : event, data); } catch {}
+export function track(event: string, data?: Record<string, unknown>, eventId?: string) {
+  try { window.fbq?.("track", event, data, eventId ? { eventID: eventId } : undefined); } catch {}
+  try { window.ttq?.track(event === "Purchase" ? "CompletePayment" : event, data, eventId ? { event_id: eventId } : undefined); } catch {}
 }
 
 /** Meta + TikTok pixels, configured per tenant in Settings → Tracking */

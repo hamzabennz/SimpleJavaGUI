@@ -19,6 +19,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     ["/admin/design/home", "🧱 Page d'accueil"],
     ["/admin/design/checkout", "📝 Formulaire de commande"],
     ["/admin/settings", "⚙️ Paramètres"],
+    ["/admin/settings/integrations", "🔌 Intégrations"],
+    ["/admin/staff", "🧑‍💼 Équipe"],
   ];
   return (
     <div className="admin" dir="ltr">

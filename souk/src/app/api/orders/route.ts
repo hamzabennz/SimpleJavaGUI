@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getTenant } from "@/lib/tenant";
 import { createOrder, OrderError } from "@/lib/orders";
+import { sendPurchaseEvents } from "@/lib/capi";
 
 const Body = z.object({
   form: z.record(z.unknown()),
@@ -28,7 +29,8 @@ export async function POST(req: Request) {
   if (!body.success) return NextResponse.json({ error: "bad_request" }, { status: 400 });
   try {
     const order = await createOrder(tenant, body.data.form, body.data.lines, { ip, coupon: body.data.coupon });
-    return NextResponse.json({ number: order.number, total: order.total, phone: order.phone });
+    void sendPurchaseEvents(tenant.config.tracking, order, { ip, ua: req.headers.get("user-agent") ?? undefined, url: req.headers.get("referer") ?? undefined });
+    return NextResponse.json({ id: order.id, number: order.number, total: order.total, phone: order.phone });
   } catch (e) {
     if (e instanceof OrderError) return NextResponse.json({ error: e.code, fieldErrors: e.fieldErrors }, { status: 422 });
     console.error(e);

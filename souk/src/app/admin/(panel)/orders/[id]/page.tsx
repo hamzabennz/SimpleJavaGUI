@@ -6,6 +6,7 @@ import { dzd } from "@/lib/money";
 import { wilayaName } from "@/lib/algeria";
 import { tr } from "@/lib/i18n";
 import { StatusButtons } from "../StatusButtons";
+import { ShipButton } from "../ShipButton";
 import { addOrderNote, updateOrderShipping, toggleBlacklist } from "../../../actions";
 
 export default async function OrderDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -54,7 +55,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
             )}
           </div>
           <form action={updateOrderShipping.bind(null, o.id)} className="card stack">
-            <h3 style={{ margin: 0 }}>Expédition</h3>
+            <div className="row between wrap"><h3 style={{ margin: 0 }}>Expédition</h3>{!o.trackingNumber && <ShipButton orderId={o.id} label="Envoyer au transporteur" />}</div>
             <div className="field"><label>Adresse</label><input name="address" defaultValue={o.address ?? ""} /></div>
             <div className="form-grid">
               <div className="field half"><label>Transporteur</label>

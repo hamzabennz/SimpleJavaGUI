@@ -88,6 +88,14 @@ export const SettingsSchema = z.object({
     metaPixelId: z.string().optional(),
     tiktokPixelId: z.string().optional(),
     gaId: z.string().optional(),
+    /** Server-side events (Meta Conversions API / TikTok Events API) */
+    metaAccessToken: z.string().optional(),
+    tiktokAccessToken: z.string().optional(),
+  }).default({}),
+  /** Carrier credentials keyed by adapter id. TODO: encrypt at rest (KMS) before production. */
+  integrations: z.object({
+    defaultCarrier: z.string().default("manual"),
+    carriers: z.record(z.record(z.string())).default({}),
   }).default({}),
   footer: z.object({ text: LocalizedSchema.optional() }).default({}),
 });

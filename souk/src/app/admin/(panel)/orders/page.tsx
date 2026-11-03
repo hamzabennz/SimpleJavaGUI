@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 import { dzd } from "@/lib/money";
 import { wilayaName } from "@/lib/algeria";
 import { StatusButtons } from "./StatusButtons";
+import { ShipButton } from "./ShipButton";
 
 export default async function Orders({ searchParams }: { searchParams: Promise<{ s?: string; q?: string; page?: string }> }) {
   const { tenant } = await requireAdmin("orders");
@@ -29,7 +30,8 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
     <>
       <div className="row between wrap">
         <h1>Commandes</h1>
-        <div className="row">
+        <div className="row wrap">
+          <ShipButton label="Expédier les commandes confirmées" />
           <a className="btn ghost sm" href={`/admin/orders/export${qs({})}`}>⬇ Export CSV</a>
         </div>
       </div>

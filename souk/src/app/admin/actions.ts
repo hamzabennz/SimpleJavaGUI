@@ -7,6 +7,8 @@ import { db } from "@/lib/db";
 import { createSession, destroySession, requireAdmin } from "@/lib/auth";
 import { getTenant } from "@/lib/tenant";
 import { mergeSettings } from "@/lib/settings";
+import { carriers } from "@/lib/carriers";
+import { wilayas } from "@/lib/algeria";
 
 // ---------- auth ----------
 export async function login(_: unknown, fd: FormData) {
@@ -185,4 +187,111 @@ export async function toggleCoupon(id: string) {
   const c = await db.coupon.findFirst({ where: { id, tenantId: tenant.id } });
   if (c) await db.coupon.update({ where: { id }, data: { active: !c.active } });
   revalidatePath("/admin/coupons");
+}
+
+// ---------- shipping (carrier adapters) ----------
+
+/** Push orders to the tenant's carrier. Returns per-order result. */
+export async function shipOrders(orderIds: string[], carrierId?: string) {
+  const { tenant, user } = await requireAdmin("orders");
+  const id = carrierId || tenant.config.integrations.defaultCarrier;
+  const adapter = carriers[id];
+  if (!adapter) return { results: [{ number: 0, ok: false, error: "Transporteur inconnu" }] };
+  const creds = tenant.config.integrations.carriers[id] ?? {};
+  const missing = adapter.credentials.filter((c) => !creds[c.key]);
+  if (missing.length) return { results: [{ number: 0, ok: false, error: `Identifiants ${adapter.name} manquants (Paramètres)` }] };
+  const orders = await db.order.findMany({ where: { id: { in: orderIds }, tenantId: tenant.id, trackingNumber: null }, include: { items: true } });
+  const results = [];
+  for (const o of orders) {
+    const r = await adapter.createShipment(o, creds, { wilayaFr: wilayas.find((w) => w.code === o.wilayaCode)?.fr ?? "", storeName: tenant.name });
+    if (r.ok) {
+      await db.order.update({
+        where: { id: o.id },
+        data: { carrier: adapter.name, trackingNumber: r.tracking, status: "shipped", events: { create: { type: "status", fromStatus: o.status, toStatus: "shipped", note: `${adapter.name}: ${r.tracking}`, userId: user.id } } },
+      });
+    } else {
+      await db.orderEvent.create({ data: { orderId: o.id, type: "note", note: `Échec ${adapter.name}: ${r.error}`, userId: user.id } });
+    }
+    results.push({ number: o.number, ...r });
+  }
+  revalidatePath("/admin/orders");
+  return { results };
+}
+
+export async function shipConfirmed() {
+  const { tenant } = await requireAdmin("orders");
+  const ids = (await db.order.findMany({ where: { tenantId: tenant.id, status: "confirmed", trackingNumber: null }, select: { id: true } })).map((o) => o.id);
+  return shipOrders(ids);
+}
+
+export async function saveIntegrations(patch: { defaultCarrier: string; carriers: Record<string, Record<string, string>>; metaAccessToken?: string; tiktokAccessToken?: string }) {
+  const { tenant } = await requireAdmin("*");
+  const next = mergeSettings(tenant.config, {
+    integrations: { defaultCarrier: patch.defaultCarrier, carriers: patch.carriers },
+    tracking: { metaAccessToken: patch.metaAccessToken || undefined, tiktokAccessToken: patch.tiktokAccessToken || undefined },
+  });
+  await db.tenant.update({ where: { id: tenant.id }, data: { settings: next as any } });
+  return { ok: true };
+}
+
+// ---------- staff ----------
+export async function addStaff(_: unknown, fd: FormData) {
+  const { tenant } = await requireAdmin("*");
+  const email = String(fd.get("email") ?? "").toLowerCase().trim();
+  const role = String(fd.get("role") ?? "confirmer");
+  if (!email || !["manager", "confirmer", "stock"].includes(role)) return { error: "Données invalides" };
+  let user = await db.user.findUnique({ where: { email } });
+  if (!user) {
+    const pw = String(fd.get("password") ?? "");
+    if (pw.length < 8) return { error: "Mot de passe : 8 caractères minimum" };
+    user = await db.user.create({ data: { email, name: String(fd.get("name") || email), passwordHash: await bcrypt.hash(pw, 10) } });
+  }
+  await db.membership.upsert({ where: { userId_tenantId: { userId: user.id, tenantId: tenant.id } }, create: { userId: user.id, tenantId: tenant.id, role }, update: { role } });
+  revalidatePath("/admin/staff");
+  return { ok: true };
+}
+export async function removeStaff(membershipId: string) {
+  const { tenant, user } = await requireAdmin("*");
+  await db.membership.deleteMany({ where: { id: membershipId, tenantId: tenant.id, role: { not: "owner" }, NOT: { userId: user.id } } });
+  revalidatePath("/admin/staff");
+}
+
+// ---------- platform (super admin) ----------
+async function requireSuperAdmin() {
+  const { user } = await requireAdmin();
+  if (!user.isSuperAdmin) redirect("/admin");
+  return user;
+}
+export async function createTenant(_: unknown, fd: FormData) {
+  await requireSuperAdmin();
+  const slug = String(fd.get("slug") ?? "").toLowerCase().trim();
+  const name = String(fd.get("name") ?? "").trim();
+  const email = String(fd.get("email") ?? "").toLowerCase().trim();
+  const pw = String(fd.get("password") ?? "");
+  if (!/^[a-z0-9-]{3,30}$/.test(slug)) return { error: "Slug invalide (a-z, 0-9, -)" };
+  if (!name || !email || pw.length < 8) return { error: "Nom, email et mot de passe (8+) requis" };
+  if (await db.tenant.findUnique({ where: { slug } })) return { error: "Slug déjà utilisé" };
+  const planId = String(fd.get("planId") || "") || null;
+  const tenant = await db.tenant.create({ data: { slug, name, planId, settings: {} } });
+  const user = await db.user.upsert({ where: { email }, create: { email, name, passwordHash: await bcrypt.hash(pw, 10) }, update: {} });
+  await db.membership.create({ data: { userId: user.id, tenantId: tenant.id, role: "owner" } });
+  // sensible defaults: all wilayas enabled with a flat price the merchant will adjust
+  await db.deliveryRate.createMany({ data: Array.from({ length: 58 }, (_, i) => ({ tenantId: tenant.id, wilayaCode: i + 1, homePrice: 700, deskPrice: 450 })) });
+  await db.page.create({ data: { tenantId: tenant.id, slug: "home", isHome: true, title: { ar: "الرئيسية", fr: "Accueil" }, sections: [
+    { id: "h", type: "hero", enabled: true, props: { title_ar: name, title_fr: name, cta_ar: "تسوق الآن", cta_fr: "Voir les produits", cta_link: "/products", align: "center" } },
+    { id: "t", type: "trust_badges", enabled: true, props: {} },
+    { id: "g", type: "product_grid", enabled: true, props: { title_ar: "منتجاتنا", title_fr: "Nos produits", limit: 12 } },
+  ] } });
+  revalidatePath("/platform");
+  return { ok: true };
+}
+export async function setTenantStatus(id: string, status: "active" | "suspended") {
+  await requireSuperAdmin();
+  await db.tenant.update({ where: { id }, data: { status } });
+  revalidatePath("/platform");
+}
+export async function setTenantPlan(id: string, fd: FormData) {
+  await requireSuperAdmin();
+  await db.tenant.update({ where: { id }, data: { planId: String(fd.get("planId") || "") || null } });
+  revalidatePath("/platform");
 }

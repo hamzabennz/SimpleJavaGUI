@@ -61,7 +61,7 @@ export function OrderForm(p: Props) {
         setMsg(p.t[j.error] ?? j.error ?? "Error");
         return;
       }
-      track("Purchase", { value: j.total, currency: "DZD" });
+      track("Purchase", { value: j.total, currency: "DZD" }, j.id);
       p.onDone?.();
       router.push(`/thank-you/${j.number}?p=${encodeURIComponent(j.phone)}`);
     } finally {
