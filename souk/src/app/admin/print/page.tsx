@@ -5,11 +5,11 @@ import { wilayaName } from "@/lib/algeria";
 import { PrintButton } from "./PrintButton";
 
 /** Printable invoices / delivery slips, one per page. ?id=<orderId> or ?s=<status> */
-export default async function Print({ searchParams }: { searchParams: Promise<{ id?: string; s?: string }> }) {
+export default async function Print({ searchParams }: { searchParams: Promise<{ id?: string; ids?: string; s?: string }> }) {
   const { tenant } = await requireAdmin("orders");
   const sp = await searchParams;
   const orders = await db.order.findMany({
-    where: { tenantId: tenant.id, ...(sp.id ? { id: sp.id } : { status: sp.s ?? "confirmed" }) },
+    where: { tenantId: tenant.id, ...(sp.id ? { id: sp.id } : sp.ids ? { id: { in: sp.ids.split(",").slice(0, 500) } } : { status: sp.s ?? "confirmed" }) },
     include: { items: true }, orderBy: { number: "asc" }, take: 200,
   });
   const st = tenant.config.store;

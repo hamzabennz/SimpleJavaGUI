@@ -70,6 +70,8 @@ Object.assign(AR, {
   "Personnaliser les couleurs de la boutique": "خصّص ألوان المتجر", "Connecter le pixel Facebook ou TikTok": "اربط بكسل فيسبوك أو تيك توك",
   "Connecter un transporteur ou Telegram": "اربط شركة توصيل أو تيليغرام", "Recevoir votre première commande": "استقبل طلبك الأول", "Démarrage": "البداية",
 });
+AR["Action groupée…"] = "إجراء جماعي…";
+AR["Appliquer à la sélection"] = "تطبيق على المحدد";
 AR["Coût des produits"] = "تكلفة المنتجات";
 AR["Attributs produits personnalisés"] = "خصائص المنتجات المخصصة";
 

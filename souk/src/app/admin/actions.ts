@@ -374,3 +374,23 @@ export async function deletePage(slug: string) {
   revalidatePath("/", "layout");
   redirect("/admin/design/home");
 }
+
+// ---------- bulk order actions ----------
+export async function bulkOrders(fd: FormData) {
+  const { tenant, user } = await requireAdmin("orders");
+  const ids = fd.getAll("ids").map(String).slice(0, 500);
+  const op = String(fd.get("op") ?? "");
+  if (!ids.length) return;
+  if (op === "ship") { await shipOrders(ids); return; }
+  if (op === "print") redirect(`/admin/print?ids=${ids.join(",")}`);
+  if (op.startsWith("status:")) {
+    const status = op.slice(7);
+    if (!tenant.config.orderStatuses.some((s) => s.key === status)) return;
+    const orders = await db.order.findMany({ where: { id: { in: ids }, tenantId: tenant.id, NOT: { status } }, select: { id: true, status: true } });
+    await db.$transaction([
+      db.order.updateMany({ where: { id: { in: orders.map((o) => o.id) } }, data: { status } }),
+      db.orderEvent.createMany({ data: orders.map((o) => ({ orderId: o.id, type: "status", fromStatus: o.status, toStatus: status, userId: user.id, note: "bulk" })) }),
+    ]);
+    revalidatePath("/admin/orders");
+  }
+}

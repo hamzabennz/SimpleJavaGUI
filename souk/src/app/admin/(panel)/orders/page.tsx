@@ -6,6 +6,8 @@ import { dzd } from "@/lib/money";
 import { wilayaName } from "@/lib/algeria";
 import { StatusButtons } from "./StatusButtons";
 import { ShipButton } from "./ShipButton";
+import { bulkOrders } from "../../actions";
+import { SelectAll } from "./SelectAll";
 
 export default async function Orders({ searchParams }: { searchParams: Promise<{ s?: string; q?: string; page?: string }> }) {
   const { tenant } = await requireAdmin("orders");
@@ -52,12 +54,23 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
         <input name="q" defaultValue={q} placeholder={t("N°, nom ou téléphone")} style={{ maxWidth: 320 }} />
         <button className="btn sm">{t("Rechercher")}</button>
       </form>
+      <form action={bulkOrders} id="bulk">
+      <div className="row wrap" style={{ marginBottom: 8 }}>
+        <select name="op" defaultValue="" style={{ width: "auto" }} required>
+          <option value="" disabled>{t("Action groupée…")}</option>
+          {statuses.map((s) => <option key={s.key} value={`status:${s.key}`}>→ {s.label}</option>)}
+          <option value="ship">🚚 {t("Envoyer au transporteur")}</option>
+          <option value="print">🖨 {t("Imprimer")}</option>
+        </select>
+        <button className="btn sm ghost">{t("Appliquer à la sélection")}</button>
+      </div>
       <div className="card table-wrap" style={{ padding: 0 }}>
         <table className="tbl">
-          <thead><tr><th>#</th><th>{t("Client")}</th><th>{t("Wilaya")}</th><th>{t("Produits")}</th><th>{t("Total")}</th><th>{t("Statut")}</th><th>{t("Date")}</th><th></th></tr></thead>
+          <thead><tr><th><SelectAll /></th><th>#</th><th>{t("Client")}</th><th>{t("Wilaya")}</th><th>{t("Produits")}</th><th>{t("Total")}</th><th>{t("Statut")}</th><th>{t("Date")}</th><th></th></tr></thead>
           <tbody>
             {orders.map((o) => (
               <tr key={o.id}>
+                <td><input type="checkbox" name="ids" value={o.id} style={{ width: "auto" }} /></td>
                 <td><Link href={`/admin/orders/${o.id}`}><b>#{o.number}</b></Link></td>
                 <td>
                   {o.name} {o.customer?.blacklisted && <span className="badge" style={{ background: "#000" }}>{t("⛔ blacklist")}</span>}
@@ -75,10 +88,11 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
                 </td>
               </tr>
             ))}
-            {!orders.length && <tr><td colSpan={8} className="muted" style={{ textAlign: "center", padding: 32 }}>{t("Aucune commande")}</td></tr>}
+            {!orders.length && <tr><td colSpan={9} className="muted" style={{ textAlign: "center", padding: 32 }}>{t("Aucune commande")}</td></tr>}
           </tbody>
         </table>
       </div>
+      </form>
       <div className="row" style={{ marginTop: 12 }}>
         {page > 1 && <Link className="btn ghost sm" href={qs({ page: String(page - 1) })}>{t("← Précédent")}</Link>}
         <span className="muted">{total} {t("commande(s)")} · {t("page")} {page}</span>
