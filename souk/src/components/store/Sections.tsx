@@ -5,6 +5,7 @@ import type { CurrentTenant } from "@/lib/tenant";
 import { tr, type Lang } from "@/lib/i18n";
 import { ProductCard } from "./ProductCard";
 import { Countdown } from "./Countdown";
+import { Icon } from "../Icon";
 
 const safeHref = (u: unknown) => (typeof u === "string" && /^(\/(?!\/)|https?:\/\/)/.test(u) ? u : "/products");
 const pick = (props: Record<string, any>, key: string, lang: Lang) => props[`${key}_${lang}`] || props[`${key}_ar`] || props[`${key}_fr`] || "";
@@ -55,11 +56,11 @@ async function SectionView({ s, tenant, lang }: { s: Section; tenant: CurrentTen
       return <section className="section container rich">{pick(p, "body", lang)}</section>;
     case "trust_badges": {
       const items = lang === "ar"
-        ? [["🚚", "توصيل لـ 58 ولاية"], ["💵", "الدفع عند الاستلام"], ["🔁", "إمكانية الاستبدال"], ["📞", "خدمة عملاء"]]
-        : [["🚚", "Livraison 58 wilayas"], ["💵", "Paiement à la livraison"], ["🔁", "Échange possible"], ["📞", "Service client"]];
+        ? [["truck", "توصيل لـ 58 ولاية"], ["cash", "الدفع عند الاستلام"], ["refresh", "إمكانية الاستبدال"], ["headset", "خدمة عملاء"]]
+        : [["truck", "Livraison 58 wilayas"], ["cash", "Paiement à la livraison"], ["refresh", "Échange possible"], ["headset", "Service client"]];
       return (
         <section className="section container badges">
-          {items.map(([i, l]) => <div key={l} className="card"><div className="ico">{i}</div><b>{l}</b></div>)}
+          {items.map(([i, l]) => <div key={l} className="card"><div className="ico"><Icon name={i} size={28} /></div><b>{l}</b></div>)}
         </section>
       );
     }

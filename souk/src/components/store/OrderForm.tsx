@@ -6,6 +6,7 @@ import { FieldInput } from "../FieldInput";
 import { dzd } from "@/lib/money";
 import { track } from "./Pixels";
 import { visitorId } from "./CartProvider";
+import { Icon } from "../Icon";
 
 export type Rate = { w: number; home: number | null; desk: number | null };
 export type Line = { productId: string; variantId?: string | null; qty: number; name: string; variant?: string | null; price: number; upsellOf?: string | null };
@@ -122,7 +123,7 @@ export function OrderForm(p: Props) {
         ))}
         <div className="line"><span>{p.t.delivery}</span><span>{fee === null ? "—" : fee === 0 ? p.t.free : dzd(fee, p.lang)}</span></div>
         <div className="line total"><span>{p.t.total}</span><span>{dzd(total, p.lang)}</span></div>
-        <div className="muted" style={{ fontSize: ".85rem" }}>💵 {p.t.cod}</div>
+        <div className="muted row" style={{ fontSize: ".85rem", gap: 6 }}><Icon name="cash" size={16} />{p.t.cod}</div>
       </div>
       {msg && <div className="alert">{msg}</div>}
       <button className="btn lg block" disabled={busy || !p.lines.length}>{busy ? p.t.sending : p.submitLabel ?? p.t.order_now}</button>

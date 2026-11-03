@@ -26,7 +26,7 @@ export default async function Staff() {
         </table>
       </div>
       <form action={toggleAutoAssign} className="card row between wrap" style={{ marginBottom: 16 }}>
-        <span>🔄 {t("Répartition automatique des nouvelles commandes entre les confirmateurs")} : <b>{tenant.config.checkout.autoAssign ? t("Activée") : t("Désactivée")}</b></span>
+        <span>{t("Répartition automatique des nouvelles commandes entre les confirmateurs")} : <b>{tenant.config.checkout.autoAssign ? t("Activée") : t("Désactivée")}</b></span>
         <button className="btn sm ghost">{tenant.config.checkout.autoAssign ? t("Désactiver") : t("Activer")}</button>
       </form>
       <StaffForm />

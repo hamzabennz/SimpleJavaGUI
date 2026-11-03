@@ -1,3 +1,4 @@
+import { Icon } from "@/components/Icon";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
@@ -26,7 +27,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
             <Link href="/track">{t.track_order}</Link>
             {other && <a href={`?lang=${other}`}>{other.toUpperCase()}</a>}
             {tenant.config.orderFlow !== "landing" && (
-              <Link href="/cart" className="cart-pill" aria-label={t.cart}>🛒<CartCount /></Link>
+              <Link href="/cart" className="cart-pill" aria-label={t.cart}><Icon name="cart" size={22} /><CartCount /></Link>
             )}
           </nav>
         </div>
@@ -39,7 +40,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
             <div className="muted">{tr(s.tagline, lang)}</div>
           </div>
           <div className="row wrap muted">
-            {s.phone && <a href={`tel:${s.phone}`} dir="ltr">📞 {s.phone}</a>}
+            {s.phone && <a href={`tel:${s.phone}`} dir="ltr" className="row" style={{ gap: 6 }}><Icon name="phone" size={15} />{s.phone}</a>}
             {s.whatsapp && <a href={`https://wa.me/${s.whatsapp.replace(/^0/, "213")}`}>WhatsApp</a>}
             {s.facebook && <a href={s.facebook}>Facebook</a>}
             {s.instagram && <a href={s.instagram}>Instagram</a>}

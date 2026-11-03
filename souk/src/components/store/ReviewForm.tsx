@@ -9,7 +9,7 @@ export function ReviewForm({ productId, lang }: { productId: string; lang: "ar" 
   const [rating, setRating] = useState(5);
   const [done, setDone] = useState(false);
   if (done) return <div className="alert ok">{T.thanks}</div>;
-  if (!open) return <button className="btn ghost" onClick={() => setOpen(true)}>✍️ {T.title}</button>;
+  if (!open) return <button className="btn ghost" onClick={() => setOpen(true)}>{T.title}</button>;
   return (
     <form className="card stack" onSubmit={async (e) => {
       e.preventDefault();

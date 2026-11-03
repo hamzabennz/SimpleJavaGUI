@@ -1,3 +1,4 @@
+import { Icon } from "@/components/Icon";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -16,7 +17,7 @@ export default async function ThankYou({ params, searchParams }: { params: Promi
   return (
     <div className="container section" style={{ maxWidth: 640 }}>
       <div className="card stack" style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 56 }}>✅</div>
+        <div style={{ width: 64, height: 64, borderRadius: 999, background: "color-mix(in srgb, var(--c-success) 15%, transparent)", color: "var(--c-success)", display: "grid", placeItems: "center", margin: "0 auto" }}><Icon name="check" size={34} /></div>
         <h1 style={{ margin: 0 }}>{t.order_received}</h1>
         <p>{tr(tenant.config.checkout.successMessage, lang)}</p>
         <p>{t.order_number}: <b>#{order.number}</b></p>

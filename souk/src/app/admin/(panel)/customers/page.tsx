@@ -14,7 +14,7 @@ export default async function Customers({ searchParams }: { searchParams: Promis
   });
   return (
     <>
-      <div className="row between wrap"><h1>{t("Clients")}</h1><a className="btn ghost sm" href="/admin/customers/export">{t("⬇ Export CSV")}</a></div>
+      <div className="row between wrap"><h1>{t("Clients")}</h1><a className="btn ghost sm" href="/admin/customers/export">{t("Export CSV")}</a></div>
       <form className="row" style={{ marginBottom: 12 }}><input name="q" defaultValue={q} placeholder={t("Nom ou téléphone")} style={{ maxWidth: 300 }} /><button className="btn sm">{t("Rechercher")}</button></form>
       <div className="card table-wrap" style={{ padding: 0 }}>
         <table className="tbl">
@@ -26,7 +26,7 @@ export default async function Customers({ searchParams }: { searchParams: Promis
               const rate = d.length + r ? Math.round((d.length / (d.length + r)) * 100) : null;
               return (
                 <tr key={c.id}>
-                  <td>{c.name} {c.blacklisted && <span className="badge" style={{ background: "#000" }}>⛔</span>}</td>
+                  <td>{c.name} {c.blacklisted && <span className="badge" style={{ background: "#000" }}></span>}</td>
                   <td dir="ltr">{c.phone}</td>
                   <td>{c.orders.length}</td><td>{d.length}</td><td>{r}</td>
                   <td>{rate === null ? "—" : <b style={{ color: rate >= 70 ? "var(--c-success)" : "var(--c-danger)" }}>{rate}%</b>}</td>

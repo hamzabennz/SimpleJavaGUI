@@ -12,7 +12,7 @@ export function ShipButton({ orderId, label }: { orderId?: string; label: string
         const ok = results.filter((r) => r.ok).length;
         const errs = results.filter((r) => !r.ok).map((r) => ("error" in r ? `${r.number ? "#" + r.number + ": " : ""}${r.error}` : ""));
         setMsg(results.length ? `${ok} envoyée(s)${errs.length ? " · " + errs.join(" · ") : ""}` : "Aucune commande à envoyer");
-      })}>{pending ? "..." : `🚚 ${label}`}</button>
+      })}>{pending ? "..." : `${label}`}</button>
       {msg && <span className="muted" style={{ fontSize: ".85rem" }}>{msg}</span>}
     </span>
   );

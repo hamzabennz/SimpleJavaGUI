@@ -22,7 +22,7 @@ export default async function Platform() {
   return (
     <div className="admin" dir="ltr" style={{ gridTemplateColumns: "1fr" }}>
       <main style={{ maxWidth: 1200, margin: "0 auto", width: "100%" }}>
-        <h1>🏢 Plateforme Souk</h1>
+        <h1>Plateforme Souk</h1>
         <div className="kpis" style={{ marginBottom: 16 }}>
           <div className="card kpi"><div className="l">Boutiques</div><div className="v">{tenants.length}</div></div>
           <div className="card kpi"><div className="l">Actives</div><div className="v">{tenants.filter((t) => t.status === "active").length}</div></div>

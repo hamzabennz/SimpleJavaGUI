@@ -42,7 +42,7 @@ export function FormBuilder({ initial, target, extra }: { initial: FieldDef[]; t
               <label className="row" style={{ fontWeight: 500, fontSize: ".85rem" }}><input type="checkbox" style={{ width: "auto" }} checked={f.enabled} disabled={target === "checkout" && ["phone", "wilaya"].includes(f.key)} onChange={(e) => upd(i, { enabled: e.target.checked })} /> {t("Actif")}</label>
               <label className="row" style={{ fontWeight: 500, fontSize: ".85rem" }}><input type="checkbox" style={{ width: "auto" }} checked={f.required} disabled={target === "checkout" && ["phone", "wilaya"].includes(f.key)} onChange={(e) => upd(i, { required: e.target.checked })} /> {t("Obligatoire")}</label>
               <select value={f.width} style={{ width: "auto" }} onChange={(e) => upd(i, { width: e.target.value as any })}><option value="full">{t("Pleine largeur")}</option><option value="half">{t("Demi-largeur")}</option></select>
-              {!(target === "checkout" && BUILTIN.includes(f.key)) && <button type="button" className="btn sm ghost" onClick={() => setFields(fields.filter((_, j) => j !== i))}>🗑</button>}
+              {!(target === "checkout" && BUILTIN.includes(f.key)) && <button type="button" className="btn sm ghost" onClick={() => setFields(fields.filter((_, j) => j !== i))}></button>}
             </div>
             <div className="form-grid">
               <div className="field half"><label>{t("Libellé FR")}</label><input value={f.label.fr} onChange={(e) => upd(i, { label: { ...f.label, fr: e.target.value } })} /></div>
@@ -87,7 +87,7 @@ export function FormBuilder({ initial, target, extra }: { initial: FieldDef[]; t
         <div className="form-grid" dir={lang === "ar" ? "rtl" : "ltr"}>
           {fields.filter((f) => f.enabled).map((f) => (
             f.type === "delivery_type"
-              ? <div key={f.key} className="field full"><label>{f.label[lang]}</label><div className="seg"><label className="on"><input type="radio" readOnly checked /> 🏠</label><label><input type="radio" readOnly /> 🏢</label></div></div>
+              ? <div key={f.key} className="field full"><label>{f.label[lang]}</label><div className="seg"><label className="on"><input type="radio" readOnly checked /> </label><label><input type="radio" readOnly /> </label></div></div>
               : <FieldInput key={f.key} field={f} lang={lang} options={f.type === "wilaya" ? [{ value: "16", label: "16 - Alger" }] : f.type === "commune" ? [] : undefined} chooseLabel="..." />
           ))}
         </div>

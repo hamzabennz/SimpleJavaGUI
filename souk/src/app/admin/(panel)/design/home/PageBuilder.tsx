@@ -33,7 +33,7 @@ export function PageBuilder({ initial, registry, slug, previewPath = "/" }: { in
                 <b className="grow" style={{ cursor: "pointer" }} onClick={() => setOpen(open === s.id ? null : s.id)}>{def?.label.fr ?? s.type}</b>
                 <input type="checkbox" title={t("Visible")} style={{ width: "auto" }} checked={s.enabled} onChange={(e) => update(sections.map((x) => (x.id === s.id ? { ...x, enabled: e.target.checked } : x)))} />
                 {def?.fields.length ? <button type="button" className="btn sm ghost" onClick={() => setOpen(open === s.id ? null : s.id)}>✎</button> : null}
-                <button type="button" className="btn sm ghost" onClick={() => update(sections.filter((x) => x.id !== s.id))}>🗑</button>
+                <button type="button" className="btn sm ghost" onClick={() => update(sections.filter((x) => x.id !== s.id))}></button>
               </div>
               {open === s.id && def && (
                 <div className="card form-grid">

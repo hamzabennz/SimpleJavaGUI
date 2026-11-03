@@ -1,3 +1,4 @@
+import { Icon } from "@/components/Icon";
 import { adminT } from "@/lib/admin-lang";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -59,17 +60,17 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
       </div>
       {doneCount < steps.length && (
         <div className="card" style={{ marginBottom: 16 }}>
-          <div className="row between"><b>🚀 {t("Démarrage")} — {doneCount}/{steps.length}</b>
+          <div className="row between"><b>{t("Démarrage")} — {doneCount}/{steps.length}</b>
             <div style={{ width: 160, height: 6, background: "var(--c-border)", borderRadius: 4 }}><div style={{ width: `${(doneCount / steps.length) * 100}%`, height: "100%", background: "var(--c-success)", borderRadius: 4 }} /></div>
           </div>
           <ul className="checklist" style={{ listStyle: "none", padding: 0, margin: "8px 0 0" }}>
-            {steps.map(([d, l, h]) => <li key={l}><span>{d ? "✅" : "⬜"}</span>{d ? <span className="done">{l}</span> : <Link href={h}>{l} →</Link>}</li>)}
+            {steps.map(([d, l, h]) => <li key={l}><span className={`tick ${d ? "on" : ""}`}>{d && <Icon name="check" size={12} />}</span>{d ? <span className="done">{l}</span> : <Link href={h}>{l} →</Link>}</li>)}
           </ul>
         </div>
       )}
       {lowStock.length > 0 && (
         <div className="alert" style={{ marginBottom: 16 }}>
-          ⚠️ {t("Stock faible")} : {lowStock.map((p, i) => <span key={p.id}>{i > 0 && ", "}<Link href={`/admin/products/${p.id}`} style={{ textDecoration: "underline" }}>{tr(p.name, lang)} ({p.stock})</Link></span>)}
+          {t("Stock faible")} : {lowStock.map((p, i) => <span key={p.id}>{i > 0 && ", "}<Link href={`/admin/products/${p.id}`} style={{ textDecoration: "underline" }}>{tr(p.name, lang)} ({p.stock})</Link></span>)}
         </div>
       )}
       <div className="kpis">{kpis.map(([l, v]) => <div key={l} className="card kpi"><div className="l">{t(l)}</div><div className="v">{v}</div></div>)}</div>

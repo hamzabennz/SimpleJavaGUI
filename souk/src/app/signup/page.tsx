@@ -12,7 +12,7 @@ export default function Signup() {
     return (
       <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 16 }} dir="ltr">
         <div className="card stack" style={{ maxWidth: 440, textAlign: "center" }}>
-          <div style={{ fontSize: 48 }}>🎉</div>
+          <div style={{ fontSize: 48 }}></div>
           <h1 style={{ margin: 0 }}>Votre boutique est prête</h1>
           <p className="muted">Ajoutez vos produits, réglez vos tarifs de livraison et commencez à vendre.</p>
           <a className="btn lg" href={state.adminUrl}>Ouvrir mon espace marchand</a>

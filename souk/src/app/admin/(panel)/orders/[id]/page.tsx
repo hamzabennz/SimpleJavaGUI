@@ -32,7 +32,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
   return (
     <>
       <Link href="/admin/orders" className="muted">{t("← Commandes")}</Link>
-      <div className="row between wrap"><h1>{t("Commande")} #{o.number}</h1><a className="btn ghost sm" target="_blank" href={`/admin/print?id=${o.id}`}>{t("🖨 Imprimer")}</a></div>
+      <div className="row between wrap"><h1>{t("Commande")} #{o.number}</h1><a className="btn ghost sm" target="_blank" href={`/admin/print?id=${o.id}`}>{t("Imprimer")}</a></div>
       <div className="card" style={{ marginBottom: 16 }}><StatusButtons orderId={o.id} current={o.status} statuses={statuses} /></div>
       {!["shipped", "delivered", "returned"].includes(o.status) && (
         <div style={{ marginBottom: 16 }}>
@@ -48,14 +48,14 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
             <h3 style={{ marginTop: 0 }}>{t("Client")}</h3>
             <p style={{ margin: 0 }}><b>{o.name}</b></p>
             <p className="row" style={{ margin: "6px 0" }}>
-              <a href={`tel:${o.phone}`} className="btn sm" dir="ltr">📞 {o.phone}</a>
-              <a href={`https://wa.me/213${o.phone.slice(1)}?text=${encodeURIComponent(waText)}`} target="_blank" className="btn sm ghost">{t("💬 WhatsApp")}</a>
+              <a href={`tel:${o.phone}`} className="btn sm" dir="ltr">{o.phone}</a>
+              <a href={`https://wa.me/213${o.phone.slice(1)}?text=${encodeURIComponent(waText)}`} target="_blank" className="btn sm ghost">{t("WhatsApp")}</a>
             </p>
             <p style={{ margin: 0 }}>{wilayaName(o.wilayaCode, lang)} · {o.commune ?? "—"} · {o.deliveryType === "desk" ? t("Stop desk") : t("Domicile")}</p>
             <p className="muted" style={{ margin: "6px 0" }}>{t("Historique")} : {delivered} {t("livrée(s)")}, {returned} {t("retour(s)")}</p>
             {o.customer && (
               <form action={toggleBlacklist.bind(null, o.customer.id)}>
-                <button className={`btn sm ${o.customer.blacklisted ? "" : "danger"}`}>{o.customer.blacklisted ? t("Retirer de la blacklist") : t("⛔ Blacklister ce numéro")}</button>
+                <button className={`btn sm ${o.customer.blacklisted ? "" : "danger"}`}>{o.customer.blacklisted ? t("Retirer de la blacklist") : t("Blacklister ce numéro")}</button>
               </form>
             )}
           </div>
@@ -94,14 +94,14 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
             <textarea name="note" rows={2} placeholder={t("Note (ex: rappeler à 18h)")} />
             <div className="row">
               <button className="btn sm" name="type" value="note">{t("Ajouter une note")}</button>
-              <button className="btn sm ghost" name="type" value="call">{t("📞 Enregistrer un appel")}</button>
+              <button className="btn sm ghost" name="type" value="call">{t("Enregistrer un appel")}</button>
             </div>
           </form>
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
             {o.events.map((e) => (
               <li key={e.id} style={{ borderInlineStart: "3px solid var(--c-border)", paddingInlineStart: 10, marginBottom: 10 }}>
                 <div style={{ fontSize: ".9rem" }}>
-                  {e.type === "status" ? <>{t("Statut :")} <b>{e.fromStatus ? `${label(e.fromStatus)} → ` : ""}{label(e.toStatus)}</b></> : e.type === "call" ? "📞 Appel" : "📝 Note"}
+                  {e.type === "status" ? <>{t("Statut :")} <b>{e.fromStatus ? `${label(e.fromStatus)} → ` : ""}{label(e.toStatus)}</b></> : e.type === "call" ? "Appel" : "Note"}
                   {e.note && e.note !== "created" && <div>{e.note}</div>}
                 </div>
                 <div className="muted" style={{ fontSize: ".75rem" }}>{e.createdAt.toLocaleString("fr-DZ")}</div>

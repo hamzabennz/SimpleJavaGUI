@@ -45,12 +45,12 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
         <div className="row wrap">
           <Link href="/admin/orders/new" className="btn sm">{t("+ Commande manuelle")}</Link>
           <ShipButton label={t("Expédier les commandes confirmées")} />
-          <a className="btn ghost sm" target="_blank" href={`/admin/print?s=${sp.s ?? "confirmed"}`}>{t("🖨 Imprimer")} ({statuses.find((x) => x.key === (sp.s ?? "confirmed"))?.label})</a>
-          <a className="btn ghost sm" href={`/admin/orders/export${qs({})}`}>{t("⬇ Export CSV")}</a>
+          <a className="btn ghost sm" target="_blank" href={`/admin/print?s=${sp.s ?? "confirmed"}`}>{t("Imprimer")} ({statuses.find((x) => x.key === (sp.s ?? "confirmed"))?.label})</a>
+          <a className="btn ghost sm" href={`/admin/orders/export${qs({})}`}>{t("Export CSV")}</a>
         </div>
       </div>
       <div className="tabs">
-        {role !== "confirmer" && <Link href={qs({ mine: sp.mine ? undefined : "1", page: undefined })} className={sp.mine ? "on" : ""}>👤 {t("Mes commandes")}</Link>}
+        {role !== "confirmer" && <Link href={qs({ mine: sp.mine ? undefined : "1", page: undefined })} className={sp.mine ? "on" : ""}>{t("Mes commandes")}</Link>}
         <Link href={qs({ s: undefined, page: undefined })} className={!sp.s ? "on" : ""}>{t("Toutes")}</Link>
         {statuses.map((s) => (
           <Link key={s.key} href={qs({ s: s.key, page: undefined })} className={sp.s === s.key ? "on" : ""}>
@@ -68,8 +68,8 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
         <select name="op" defaultValue="" style={{ width: "auto" }} required>
           <option value="" disabled>{t("Action groupée…")}</option>
           {statuses.map((s) => <option key={s.key} value={`status:${s.key}`}>→ {s.label}</option>)}
-          <option value="ship">🚚 {t("Envoyer au transporteur")}</option>
-          <option value="print">🖨 {t("Imprimer")}</option>
+          <option value="ship">{t("Envoyer au transporteur")}</option>
+          <option value="print">{t("Imprimer")}</option>
         </select>
         <button className="btn sm ghost">{t("Appliquer à la sélection")}</button>
       </div>
@@ -82,9 +82,9 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
                 <td><input type="checkbox" name="ids" value={o.id} style={{ width: "auto" }} /></td>
                 <td><Link href={`/admin/orders/${o.id}`}><b>#{o.number}</b></Link></td>
                 <td>
-                  {o.name} {o.customer?.blacklisted && <span className="badge" style={{ background: "#000" }}>{t("⛔ blacklist")}</span>}
+                  {o.name} {o.customer?.blacklisted && <span className="badge" style={{ background: "#000" }}>{t("blacklist")}</span>}
                   {dupPhones.has(o.phone) && <span className="badge" style={{ background: "#f59e0b" }}>{t("doublon?")}</span>}
-                  {(() => { const k = risk(o.phone); return k && <span className="badge" style={{ background: "#dc2626" }} title={`${k.r} retour(s) / ${k.d} livrée(s)`}>⚠ {t("risque")} {k.r}↩</span>; })()}
+                  {(() => { const k = risk(o.phone); return k && <span className="badge" style={{ background: "#dc2626" }} title={`${k.r} retour(s) / ${k.d} livrée(s)`}>{t("risque")} {k.r}↩</span>; })()}
                   <div className="muted" dir="ltr" style={{ fontSize: ".85rem" }}>{o.phone}{o.source !== "storefront" && <> · {o.source}</>}</div>
                 </td>
                 <td>{wilayaName(o.wilayaCode, lang)}<div className="muted" style={{ fontSize: ".8rem" }}>{o.deliveryType === "desk" ? t("Stop desk") : t("Domicile")}</div></td>
@@ -93,8 +93,8 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
                 <td><StatusButtons compact orderId={o.id} current={o.status} statuses={statuses} /></td>
                 <td className="muted" style={{ fontSize: ".8rem", whiteSpace: "nowrap" }}>{o.createdAt.toLocaleString("fr-DZ", { dateStyle: "short", timeStyle: "short" })}</td>
                 <td className="row" style={{ gap: 6 }}>
-                  <a className="btn sm ghost" href={`tel:${o.phone}`} title={t("Appeler")}>📞</a>
-                  <a className="btn sm ghost" href={`https://wa.me/213${o.phone.slice(1)}`} target="_blank" title={t("WhatsApp")}>💬</a>
+                  <a className="btn sm ghost" href={`tel:${o.phone}`} title={t("Appeler")}></a>
+                  <a className="btn sm ghost" href={`https://wa.me/213${o.phone.slice(1)}`} target="_blank" title={t("WhatsApp")}></a>
                 </td>
               </tr>
             ))}

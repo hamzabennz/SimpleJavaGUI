@@ -74,7 +74,7 @@ export function ProductForm({ initial, categories, attributeFields, allProducts 
             <button className="btn sm ghost">{t("Ajouter")}</button>
           </form>
           <label className="btn sm outline" style={{ alignSelf: "start" }}>
-            {uploading ? "Envoi..." : "⬆ Téléverser des images"}
+            {uploading ? "Envoi..." : "Téléverser des images"}
             <input type="file" accept="image/*" multiple hidden disabled={uploading} onChange={async (e) => {
               const files = Array.from(e.target.files ?? []);
               if (!files.length) return;

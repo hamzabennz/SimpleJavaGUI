@@ -24,11 +24,11 @@ export default async function Reviews({ searchParams }: { searchParams: Promise<
             <div className="row">
               {!r.approved && <form action={moderateReview.bind(null, r.id, "approve")}><button className="btn sm">{t("Publier")}</button></form>}
               {r.approved && <form action={moderateReview.bind(null, r.id, "hide")}><button className="btn sm ghost">{t("Masquer")}</button></form>}
-              <form action={moderateReview.bind(null, r.id, "delete")}><button className="btn sm ghost">🗑</button></form>
+              <form action={moderateReview.bind(null, r.id, "delete")}><button className="btn sm ghost"></button></form>
             </div>
           </div>
         ))}
-        {!reviews.length && <div className="card muted" style={{ textAlign: "center" }}>{t("Rien pour l'instant 🎉")}</div>}
+        {!reviews.length && <div className="card muted" style={{ textAlign: "center" }}>{t("Rien pour l'instant ")}</div>}
       </div>
     </>
   );

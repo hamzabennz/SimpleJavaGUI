@@ -89,7 +89,7 @@ function ImageField({ field, label, value, onChange }: { field: FieldDef; label:
         {value && <img src={value} alt="" style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 6 }} />}
         <input dir="ltr" name={field.key} value={value ?? ""} placeholder="https://…" onChange={(e) => onChange?.(e.target.value)} />
         <label className="btn sm ghost" style={{ whiteSpace: "nowrap" }}>
-          {busy ? "…" : "⬆"}
+          {busy ? "…" : ""}
           <input type="file" accept="image/*" hidden onChange={async (e) => {
             const f = e.target.files?.[0]; if (!f) return;
             setBusy(true); setErr("");

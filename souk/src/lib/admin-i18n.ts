@@ -88,8 +88,13 @@ Object.assign(AR, {
   "Visiteur anonyme": "زائر مجهول", "Aucun panier pour l'instant": "لا توجد سلات حالياً",
   "Visiteurs qui ont ajouté des produits au panier sans commander ni laisser de numéro. Utile pour voir les produits qui intéressent mais ne convertissent pas.": "زوار أضافوا منتجات إلى السلة دون طلب أو ترك رقم. مفيد لمعرفة المنتجات التي تثير الاهتمام ولا تتحول إلى طلبات.",
 });
+AR["Voir la boutique"] = "عرض المتجر";
 AR["Coût des produits"] = "تكلفة المنتجات";
 AR["Attributs produits personnalisés"] = "خصائص المنتجات المخصصة";
+
+// emoji-free aliases (UI strings no longer carry decorative emoji)
+const strip = (x: string) => x.replace(/(?:[\u{1F000}-\u{1FAFF}\u26A0\u26D4\u2B07\u2B06\u23F0\u2705\u2B1C\u270D\u2699\u2B50]\uFE0F?(?:\u200D[\u{1F000}-\u{1FAFF}]\uFE0F?)*)\s?/gu, "").trim();
+for (const [k, v] of Object.entries(AR)) { const sk = strip(k); if (sk && !(sk in AR)) AR[sk] = strip(v); }
 
 export function makeT(lang: AdminLang) {
   return (s: string) => (lang === "ar" ? AR[s] ?? s : s);

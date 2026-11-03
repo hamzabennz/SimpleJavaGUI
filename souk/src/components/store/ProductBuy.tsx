@@ -96,12 +96,12 @@ export function ProductBuy({ product, options, variants, offers = [], flow, lang
                 cart.add({ ...line, slug: product.slug, image: images[0] });
                 track("AddToCart", { value: price * qty, currency: "DZD" });
                 if (flow === "cart") router.push("/cart");
-              }}>🛒 {t.add_to_cart}</button>
+              }}>{t.add_to_cart}</button>
             )}
             {whatsapp && (
               <a className="btn ghost block" target="_blank" rel="noopener"
                 href={`https://wa.me/${whatsapp.replace(/\D/g, "").replace(/^0/, "213")}?text=${encodeURIComponent(`${product.name}${variantLabel ? ` (${variantLabel})` : ""} × ${qty}`)}`}>
-                💬 {lang === "ar" ? "اطلب عبر واتساب" : "Commander via WhatsApp"}
+                {lang === "ar" ? "اطلب عبر واتساب" : "Commander via WhatsApp"}
               </a>
             )}
             {flow !== "cart" && (

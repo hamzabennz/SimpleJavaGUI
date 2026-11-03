@@ -10,7 +10,7 @@ export function ImportCsv() {
   const [state, action, pending] = useActionState(importProducts, null);
   return (
     <form action={action} className="card row wrap">
-      <b>⬆ {t("Importer des produits (CSV)")}</b>
+      <b>{t("Importer des produits (CSV)")}</b>
       <input type="file" name="file" accept=".csv,text/csv" required style={{ maxWidth: 280 }} />
       <button className="btn sm" disabled={pending}>{pending ? "..." : t("Importer")}</button>
       <a className="muted" style={{ fontSize: ".85rem" }} download="modele-produits.csv" href={`data:text/csv;charset=utf-8,${encodeURIComponent(TEMPLATE)}`}>{t("Télécharger le modèle")}</a>
