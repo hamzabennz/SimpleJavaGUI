@@ -8,7 +8,7 @@ export function ProductCard({ p, lang, style }: { p: P; lang: Lang; style: strin
   const off = p.compareAt && p.compareAt > p.price ? Math.round(100 - (p.price / p.compareAt) * 100) : 0;
   return (
     <Link href={`/products/${p.slug}`} className={`pcard ${style}`} style={{ position: "relative" }}>
-      {p.images[0] ? <img className="img" src={p.images[0]} alt={tr(p.name, lang)} loading="lazy" /> : <div className="img" />}
+      {p.images[0] ? <img className="img" src={p.images[0]} alt={tr(p.name, lang)} width={400} height={400} loading="lazy" decoding="async" /> : <div className="img" />}
       {off > 0 && <span className="sale-tag">-{off}%</span>}
       <div className="body">
         <div className="name">{tr(p.name, lang)}</div>

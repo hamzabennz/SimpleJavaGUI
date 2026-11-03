@@ -24,7 +24,7 @@ export function themeToCss(theme: Settings["theme"]): string {
 
 export function googleFontsHref(theme: Settings["theme"]) {
   const fams = Array.from(new Set([theme.fontAr, theme.fontLatin]))
-    .map((f) => `family=${encodeURIComponent(f)}:wght@400;600;700`)
+    .map((f) => `family=${encodeURIComponent(f)}:wght@400;700`)
     .join("&");
   return `https://fonts.googleapis.com/css2?${fams}&display=swap`;
 }

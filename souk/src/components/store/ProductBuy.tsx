@@ -43,10 +43,10 @@ export function ProductBuy({ product, options, variants, offers = [], flow, lang
   return (
     <div className="pdp">
       <div className="gallery">
-        {shownImg ? <img className="main" src={shownImg} alt={product.name} /> : <div className="main" />}
+        {shownImg ? <img className="main" src={shownImg} alt={product.name} width={800} height={800} fetchPriority="high" decoding="async" /> : <div className="main" />}
         {images.length > 1 && (
           <div className="thumbs">
-            {images.map((s, i) => <img key={i} src={s} alt="" className={i === img ? "on" : ""} onClick={() => setImg(i)} />)}
+            {images.map((s, i) => <img key={i} src={s} alt="" width={72} height={72} loading="lazy" decoding="async" className={i === img ? "on" : ""} onClick={() => setImg(i)} />)}
           </div>
         )}
       </div>
