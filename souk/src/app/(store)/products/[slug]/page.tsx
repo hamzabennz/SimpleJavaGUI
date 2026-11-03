@@ -6,6 +6,7 @@ import { getDict, getLang, tr } from "@/lib/i18n";
 import { checkoutContext } from "@/lib/storefront";
 import { ProductBuy } from "@/components/store/ProductBuy";
 import { ProductCard } from "@/components/store/ProductCard";
+import { ReviewForm } from "@/components/store/ReviewForm";
 
 async function load(slug: string) {
   const tenant = await requireTenant();
@@ -31,9 +32,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     return { id: v.id, price: v.price, stock: v.stock, image: v.image, optionValues: Object.fromEntries(options.map((o) => [o.name, ov[o.key]])) };
   });
   const attrs = tenant.config.productAttributes.filter((a) => a.enabled && (product.attributes as any)?.[a.key]);
+  const reviews = await db.review.findMany({ where: { tenantId: tenant.id, productId: product.id, approved: true }, orderBy: { createdAt: "desc" }, take: 30 });
+  const avg = reviews.length ? reviews.reduce((a, r) => a + r.rating, 0) / reviews.length : 0;
   const related = await db.product.findMany({ where: { tenantId: tenant.id, status: "active", categoryId: product.categoryId, NOT: { id: product.id } }, take: 4 });
   const jsonLd = {
     "@context": "https://schema.org", "@type": "Product", name: tr(product.name, lang), image: product.images, description: tr(product.description, lang),
+    ...(reviews.length ? { aggregateRating: { "@type": "AggregateRating", ratingValue: avg.toFixed(1), reviewCount: reviews.length } } : {}),
     offers: { "@type": "Offer", priceCurrency: "DZD", price: product.price, availability: product.trackStock && product.stock <= 0 && !product.variants.some((v) => v.stock > 0) ? "https://schema.org/OutOfStock" : "https://schema.org/InStock" },
   };
   return (
@@ -56,6 +60,18 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         </table>
       )}
       {tr(product.description, lang) && <div className="card rich">{tr(product.description, lang)}</div>}
+      <section className="section">
+        <h2>{lang === "ar" ? "آراء الزبائن" : "Avis clients"} {reviews.length > 0 && <span className="muted" style={{ fontSize: "1rem" }}>★ {avg.toFixed(1)} ({reviews.length})</span>}</h2>
+        <div className="stack">
+          {reviews.map((r) => (
+            <div key={r.id} className="card">
+              <div className="row between"><b>{r.name}{r.verified && <span className="badge" style={{ background: "var(--c-success)", marginInlineStart: 8 }}>✓ {lang === "ar" ? "شراء مؤكد" : "Achat vérifié"}</span>}</b><span style={{ color: "var(--c-accent)" }} dir="ltr">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span></div>
+              <p style={{ margin: "6px 0 0" }}>{r.body}</p>
+            </div>
+          ))}
+          <ReviewForm productId={product.id} lang={lang} />
+        </div>
+      </section>
       {related.length > 0 && (
         <section className="section">
           <h2>{t.related}</h2>

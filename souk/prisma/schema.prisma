@@ -38,6 +38,7 @@ model Tenant {
   coupons       Coupon[]
   pages         Page[]
   abandoned     AbandonedCheckout[]
+  reviews       Review[]
 }
 
 model Domain {
@@ -110,6 +111,7 @@ model Product {
   seo         Json      @default("{}")
   variants    Variant[]
   orderItems  OrderItem[]
+  reviews     Review[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -262,4 +264,22 @@ model AbandonedCheckout {
   createdAt DateTime @default(now())
 
   @@unique([tenantId, phone])
+}
+
+/// Product reviews, shown after merchant approval. verified = phone has a delivered order.
+model Review {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  phone     String?
+  rating    Int
+  body      String
+  approved  Boolean  @default(false)
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, productId, approved])
 }

@@ -15,6 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     ["orders", "/admin/abandoned", "📵 Paniers abandonnés"],
     ["products", "/admin/products", "📦 Produits"],
     ["customers", "/admin/customers", "👥 Clients"],
+    ["products", "/admin/reviews", "⭐ Avis clients"],
     ["orders", "/admin/coupons", "🏷️ Coupons"],
     ["delivery", "/admin/delivery", "🚚 Livraison"],
     ["reports", "/admin/reports", "📈 Rapports"],

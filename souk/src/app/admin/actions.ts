@@ -468,3 +468,11 @@ export async function toggleAutoAssign() {
   await db.tenant.update({ where: { id: tenant.id }, data: { settings: mergeSettings(tenant.config, { checkout: { autoAssign: !tenant.config.checkout.autoAssign } }) as any } });
   revalidatePath("/admin/staff");
 }
+
+// ---------- reviews moderation ----------
+export async function moderateReview(id: string, op: "approve" | "hide" | "delete") {
+  const { tenant } = await requireAdmin("products");
+  if (op === "delete") await db.review.deleteMany({ where: { id, tenantId: tenant.id } });
+  else await db.review.updateMany({ where: { id, tenantId: tenant.id }, data: { approved: op === "approve" } });
+  revalidatePath("/admin/reviews");
+}
