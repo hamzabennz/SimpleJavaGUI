@@ -38,7 +38,7 @@ export function FormBuilder({ initial, target, extra }: { initial: FieldDef[]; t
                 <button type="button" className="btn sm ghost" onClick={() => move(i, 1)}>↓</button>
               </div>
               <code style={{ flex: 1 }}>{f.key}</code>
-              <span className="muted" style={{ fontSize: ".8rem" }}>{TYPES.find(([t]) => t === f.type)?.[1] ?? f.type}</span>
+              <span className="muted" style={{ fontSize: ".8rem" }}>{t(TYPES.find(([ty]) => ty === f.type)?.[1] ?? f.type)}</span>
               <label className="row" style={{ fontWeight: 500, fontSize: ".85rem" }}><input type="checkbox" style={{ width: "auto" }} checked={f.enabled} disabled={target === "checkout" && ["phone", "wilaya"].includes(f.key)} onChange={(e) => upd(i, { enabled: e.target.checked })} /> {t("Actif")}</label>
               <label className="row" style={{ fontWeight: 500, fontSize: ".85rem" }}><input type="checkbox" style={{ width: "auto" }} checked={f.required} disabled={target === "checkout" && ["phone", "wilaya"].includes(f.key)} onChange={(e) => upd(i, { required: e.target.checked })} /> {t("Obligatoire")}</label>
               <select value={f.width} style={{ width: "auto" }} onChange={(e) => upd(i, { width: e.target.value as any })}><option value="full">{t("Pleine largeur")}</option><option value="half">{t("Demi-largeur")}</option></select>
@@ -66,7 +66,7 @@ export function FormBuilder({ initial, target, extra }: { initial: FieldDef[]; t
         }}>
           <input name="key" placeholder={t("clé (ex: taille_pied)")} required style={{ maxWidth: 180 }} />
           <input name="fr" placeholder={t("Libellé")} style={{ maxWidth: 180 }} />
-          <select name="type" style={{ maxWidth: 160 }}>{TYPES.map(([t, l]) => <option key={t} value={t}>{l}</option>)}</select>
+          <select name="type" style={{ maxWidth: 160 }}>{TYPES.map(([ty, l]) => <option key={ty} value={ty}>{t(l)}</option>)}</select>
           <button className="btn sm">{t("+ Ajouter un champ")}</button>
         </form>
         {opts && (

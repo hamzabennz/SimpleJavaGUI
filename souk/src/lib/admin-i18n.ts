@@ -89,6 +89,13 @@ Object.assign(AR, {
   "Visiteurs qui ont ajouté des produits au panier sans commander ni laisser de numéro. Utile pour voir les produits qui intéressent mais ne convertissent pas.": "زوار أضافوا منتجات إلى السلة دون طلب أو ترك رقم. مفيد لمعرفة المنتجات التي تثير الاهتمام ولا تتحول إلى طلبات.",
 });
 AR["Voir la boutique"] = "عرض المتجر";
+Object.assign(AR, {
+  "Principale": "الرئيسي", "Texte sur principale": "النص على اللون الرئيسي", "Accent": "لون التمييز", "Fond": "الخلفية", "Cartes": "البطاقات",
+  "Texte": "النص", "Texte secondaire": "النص الثانوي", "Bordures": "الحدود", "Erreur": "الخطأ", "Succès": "النجاح", "Arrondi": "تدوير الزوايا",
+  "Formulaire sur la page produit (sans panier)": "استمارة في صفحة المنتج (بدون سلة)", "Panier classique": "سلة كلاسيكية", "Les deux": "الاثنان معاً",
+  "Texte long": "نص طويل", "Nombre": "رقم", "Liste": "قائمة", "Choix unique": "اختيار واحد", "Case à cocher": "خانة اختيار",
+  "Logo": "الشعار", "Facebook": "فيسبوك", "Instagram": "إنستغرام", "TikTok": "تيك توك",
+});
 AR["Coût des produits"] = "تكلفة المنتجات";
 AR["Attributs produits personnalisés"] = "خصائص المنتجات المخصصة";
 

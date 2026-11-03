@@ -12,7 +12,7 @@ export function SettingsForm({ initial }: { initial: Settings }) {
   const [saved, setSaved] = useState(false);
   const store = (k: keyof Settings["store"], v: any) => { setS({ ...s, store: { ...s.store, [k]: v } }); setSaved(false); };
   const text = (k: keyof Settings["store"], label: string, dir?: "ltr") => (
-    <div className="field half"><label>{label}</label><input dir={dir} value={(s.store[k] as string) ?? ""} onChange={(e) => store(k, e.target.value || undefined)} /></div>
+    <div className="field half"><label>{t(label)}</label><input dir={dir} value={(s.store[k] as string) ?? ""} onChange={(e) => store(k, e.target.value || undefined)} /></div>
   );
   return (
     <div className="stack" style={{ maxWidth: 860 }}>

@@ -39,14 +39,14 @@ export function ThemeEditor({ initial, orderFlow }: { initial: Settings["theme"]
           {Object.entries(t.colors).map(([k, v]) => (
             <div key={k} className="swatch">
               <input type="color" value={v} onChange={(e) => upd({ colors: { ...t.colors, [k]: e.target.value } })} />
-              <span style={{ flex: 1 }}>{COLOR_LABELS[k] ?? k}</span>
+              <span style={{ flex: 1 }}>{T(COLOR_LABELS[k] ?? k)}</span>
               <code className="muted">{v}</code>
             </div>
           ))}
         </div>
         <div className="card stack">
           <h3 style={{ margin: 0 }}>{T("Style")}</h3>
-          <div className="field"><label>Arrondi : {t.radius}px</label><input type="range" min={0} max={24} value={t.radius} onChange={(e) => upd({ radius: Number(e.target.value) })} /></div>
+          <div className="field"><label>{T("Arrondi")} : {t.radius}px</label><input type="range" min={0} max={24} value={t.radius} onChange={(e) => upd({ radius: Number(e.target.value) })} /></div>
           <div className="field"><label>{T("Police arabe")}</label><select value={t.fontAr} onChange={(e) => upd({ fontAr: e.target.value })}>{FONTS_AR.map((f) => <option key={f}>{f}</option>)}</select></div>
           <div className="field"><label>{T("Police latine")}</label><select value={t.fontLatin} onChange={(e) => upd({ fontLatin: e.target.value })}>{FONTS_LATIN.map((f) => <option key={f}>{f}</option>)}</select></div>
           <div className="field"><label>{T("Boutons")}</label><select value={t.buttonStyle} onChange={(e) => upd({ buttonStyle: e.target.value as any })}><option value="solid">{T("Pleins")}</option><option value="outline">{T("Contour")}</option><option value="pill">{T("Pilule")}</option></select></div>
@@ -55,9 +55,9 @@ export function ThemeEditor({ initial, orderFlow }: { initial: Settings["theme"]
         </div>
         <div className="card stack">
           <h3 style={{ margin: 0 }}>{T("Parcours de commande")}</h3>
-          {([["landing", "Formulaire sur la page produit (sans panier)"], ["cart", "Panier classique"], ["both", "Les deux"]] as const).map(([k, l]) => (
+          {([["landing", "Formulaire sur la page produit (sans panier)"], ["cart", "Panier classique"], ["both", "Les deux"]] as const).map(([k, l0]) => { const l = T(l0); return (
             <label key={k} className="row" style={{ fontWeight: 500 }}><input type="radio" style={{ width: "auto" }} checked={flow === k} onChange={() => { setFlow(k); setSaved(false); }} /> {l}</label>
-          ))}
+          ); })}
         </div>
         <button className="btn lg" disabled={pending} onClick={() => start(async () => { await saveSettings({ theme: t, orderFlow: flow }); setSaved(true); setPreviewKey((k) => k + 1); })}>
           {pending ? "..." : saved ? T("Enregistré ✓") : T("Enregistrer & publier")}
