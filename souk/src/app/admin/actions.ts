@@ -101,6 +101,7 @@ const ProductInput = z.object({
   images: z.array(z.string().url()),
   attributes: z.record(z.unknown()),
   freeShipping: z.boolean(),
+  offers: z.array(z.object({ qty: z.coerce.number().int().min(2), price: z.coerce.number().int().min(0), label: z.object({ ar: z.string(), fr: z.string() }) })).default([]),
   options: z.array(z.object({ name: z.object({ ar: z.string(), fr: z.string() }), values: z.array(z.string()) })),
   variants: z.array(z.object({ id: z.string().optional(), optionValues: z.record(z.string()), sku: z.string().nullable(), price: z.coerce.number().int().nullable(), stock: z.coerce.number().int() })),
 });
@@ -114,7 +115,7 @@ export async function saveProduct(input: ProductInputT) {
   const data = {
     slug: d.slug, name: d.name, description: d.description, status: d.status, price: d.price, compareAt: d.compareAt, cost: d.cost,
     categoryId: d.categoryId, trackStock: d.trackStock, stock: d.stock, images: d.images, attributes: d.attributes as any,
-    extra: { freeShipping: d.freeShipping }, options: d.options,
+    extra: { freeShipping: d.freeShipping, offers: d.offers }, options: d.options,
   };
   try {
     let id = d.id;

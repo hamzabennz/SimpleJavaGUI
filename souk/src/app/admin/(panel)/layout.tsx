@@ -9,6 +9,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const nav: [string, string, string][] = [
     ["", "/admin", "📊 Tableau de bord"],
     ["orders", "/admin/orders", "🧾 Commandes"],
+    ["orders", "/admin/abandoned", "📵 Paniers abandonnés"],
     ["products", "/admin/products", "📦 Produits"],
     ["customers", "/admin/customers", "👥 Clients"],
     ["orders", "/admin/coupons", "🏷️ Coupons"],

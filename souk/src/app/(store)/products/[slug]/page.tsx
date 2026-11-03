@@ -38,6 +38,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         product={{ id: product.id, slug: product.slug, name: tr(product.name, lang), price: product.price, compareAt: product.compareAt, images: product.images, trackStock: product.trackStock, stock: product.stock, freeShipping: !!(product.extra as any)?.freeShipping }}
         options={options.map(({ name, values }) => ({ name, values }))}
         variants={variants}
+        offers={(((product.extra as any)?.offers ?? []) as any[]).map((o) => ({ qty: o.qty, price: o.price, label: tr(o.label, lang) || undefined }))}
         flow={tenant.config.orderFlow}
         lang={lang}
         t={t}

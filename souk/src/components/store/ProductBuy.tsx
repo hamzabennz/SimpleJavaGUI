@@ -12,13 +12,14 @@ type Props = {
   product: { id: string; slug: string; name: string; price: number; compareAt: number | null; images: string[]; trackStock: boolean; stock: number; freeShipping: boolean };
   options: { name: string; values: string[] }[];
   variants: Variant[];
+  offers?: { qty: number; price: number; label?: string }[];
   flow: "landing" | "cart" | "both";
   lang: "ar" | "fr";
   t: Record<string, string>;
   checkout: { fields: FieldDef[]; wilayas: { code: number; ar: string; fr: string }[]; rates: Rate[]; deskEnabled: boolean; freeShippingOver: number | null };
 };
 
-export function ProductBuy({ product, options, variants, flow, lang, t, checkout }: Props) {
+export function ProductBuy({ product, options, variants, offers = [], flow, lang, t, checkout }: Props) {
   const router = useRouter();
   const cart = useCart();
   const [sel, setSel] = useState<Record<string, string>>(() => Object.fromEntries(options.map((o) => [o.name, o.values[0]])));
@@ -26,7 +27,9 @@ export function ProductBuy({ product, options, variants, flow, lang, t, checkout
   const variant = useMemo(() => variants.find((v) => options.every((o) => v.optionValues[o.name] === sel[o.name])) ?? null, [sel, variants, options]);
   const [img, setImg] = useState(0);
   const images = product.images.length ? product.images : [""];
-  const price = variant?.price ?? product.price;
+  const offer = offers.find((o) => o.qty === qty);
+  const basePrice = variant?.price ?? product.price;
+  const price = offer ? Math.round(offer.price / offer.qty) : basePrice;
   const stock = variant ? variant.stock : product.stock;
   const soldOut = product.trackStock && stock <= 0;
   const variantLabel = variant ? Object.values(variant.optionValues).join(" / ") : null;
@@ -47,8 +50,8 @@ export function ProductBuy({ product, options, variants, flow, lang, t, checkout
       <div className="stack">
         <h1 style={{ margin: 0 }}>{product.name}</h1>
         <div className="row" style={{ fontSize: "1.4rem" }}>
-          <span className="price">{dzd(price, lang)}</span>
-          {product.compareAt && product.compareAt > price && <span className="compare">{dzd(product.compareAt, lang)}</span>}
+          <span className="price">{dzd(basePrice, lang)}</span>
+          {product.compareAt && product.compareAt > basePrice && <span className="compare">{dzd(product.compareAt, lang)}</span>}
         </div>
         {options.map((o) => (
           <div key={o.name} className="field">
@@ -58,6 +61,21 @@ export function ProductBuy({ product, options, variants, flow, lang, t, checkout
             </div>
           </div>
         ))}
+        {offers.length > 0 && (
+          <div className="stack" style={{ gap: 8 }}>
+            {[{ qty: 1, price: basePrice, label: undefined as string | undefined }, ...offers].map((o) => {
+              const save = basePrice * o.qty - o.price;
+              return (
+                <label key={o.qty} className="card row" style={{ cursor: "pointer", padding: 12, borderColor: qty === o.qty ? "var(--c-primary)" : undefined, borderWidth: qty === o.qty ? 2 : 1 }}>
+                  <input type="radio" style={{ width: "auto" }} checked={qty === o.qty} onChange={() => setQty(o.qty)} />
+                  <span style={{ flex: 1 }}><b>{o.label || `${o.qty} ×`}</b></span>
+                  {save > 0 && <span className="badge" style={{ background: "var(--c-accent)" }}>-{dzd(save, lang)}</span>}
+                  <b className="price">{dzd(o.price, lang)}</b>
+                </label>
+              );
+            })}
+          </div>
+        )}
         <div className="field">
           <label>{t.quantity}</label>
           <div className="qty">

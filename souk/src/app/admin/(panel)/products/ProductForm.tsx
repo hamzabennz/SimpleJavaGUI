@@ -101,6 +101,25 @@ export function ProductForm({ initial, categories, attributeFields }: Props) {
             </table>
           )}
         </div>
+        <div className="card stack">
+          <h3 style={{ margin: 0 }}>Offres de quantité</h3>
+          <p className="muted" style={{ margin: 0, fontSize: ".85rem" }}>Ex : 2 pièces à 7 000 DA au lieu de 7 800 DA. Affiché comme choix sur la page produit.</p>
+          {p.offers.map((o, i) => {
+            const upd = (patch: Partial<typeof o>) => set("offers", p.offers.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+            return (
+              <div key={i} className="row wrap">
+                <input type="number" min={2} value={o.qty} onChange={(e) => upd({ qty: Number(e.target.value) })} style={{ width: 80 }} title="Quantité" />
+                <span>pièces pour</span>
+                <input type="number" value={o.price} onChange={(e) => upd({ price: Number(e.target.value) })} style={{ width: 120 }} />
+                <span>DA</span>
+                <input placeholder="Libellé FR (ex: Pack duo)" value={o.label.fr} onChange={(e) => upd({ label: { ...o.label, fr: e.target.value } })} style={{ maxWidth: 170 }} />
+                <input placeholder="التسمية AR" dir="rtl" value={o.label.ar} onChange={(e) => upd({ label: { ...o.label, ar: e.target.value } })} style={{ maxWidth: 170 }} />
+                <button type="button" className="btn sm ghost" onClick={() => set("offers", p.offers.filter((_, j) => j !== i))}>✕</button>
+              </div>
+            );
+          })}
+          <button type="button" className="btn sm ghost" style={{ alignSelf: "start" }} onClick={() => set("offers", [...p.offers, { qty: (p.offers.at(-1)?.qty ?? 1) + 1, price: p.price * ((p.offers.at(-1)?.qty ?? 1) + 1), label: { fr: "", ar: "" } }])}>+ Ajouter une offre</button>
+        </div>
         {attributeFields.length > 0 && (
           <div className="card stack">
             <h3 style={{ margin: 0 }}>Attributs personnalisés</h3>

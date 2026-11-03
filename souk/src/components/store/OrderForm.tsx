@@ -34,6 +34,15 @@ export function OrderForm(p: Props) {
   const set = (k: string, v: string) => setVals((s) => ({ ...s, [k]: v, ...(k === "wilaya" ? { commune: "" } : {}) }));
 
   const wilaya = Number(vals.wilaya || 0);
+  // abandoned-checkout capture: once a phone looks valid, save the draft (debounced)
+  useEffect(() => {
+    const phone = (vals.phone ?? "").replace(/\s/g, "");
+    if (!/^0[567]\d{8}$/.test(phone)) return;
+    const h = setTimeout(() => {
+      fetch("/api/abandoned", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ form: vals, lines: p.lines }) }).catch(() => {});
+    }, 1500);
+    return () => clearTimeout(h);
+  }, [vals, p.lines]);
   useEffect(() => {
     if (!wilaya) return setCommunes([]);
     fetch(`/api/communes?w=${wilaya}`).then((r) => r.json()).then(setCommunes).catch(() => setCommunes([]));

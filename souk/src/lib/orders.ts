@@ -2,6 +2,14 @@ import { db } from "./db";
 import { buildValidator, BUILTIN_ORDER_KEYS } from "./forms";
 import type { CurrentTenant } from "./tenant";
 
+/** Quantity offers: product.extra.offers = [{ qty: 2, price: 7000 }] → total price for exactly that qty */
+export type Offer = { qty: number; price: number; label?: { ar?: string; fr?: string } };
+export function offerUnitPrice(extra: unknown, qty: number): number | null {
+  const offers = ((extra as any)?.offers ?? []) as Offer[];
+  const o = offers.find((x) => x.qty === qty);
+  return o ? Math.round(o.price / o.qty) : null;
+}
+
 export type CartLine = { productId: string; variantId?: string | null; qty: number };
 
 export async function deliveryFee(tenantId: string, wilayaCode: number, type: "home" | "desk") {
@@ -28,7 +36,7 @@ export async function priceLines(tenantId: string, lines: CartLine[]) {
       product: p, variant: v, qty,
       name: (p.name as any)?.ar || (p.name as any)?.fr || p.slug,
       variantLabel: v ? Object.values(v.optionValues as Record<string, string>).join(" / ") : null,
-      unitPrice: v?.price ?? p.price,
+      unitPrice: offerUnitPrice(p.extra, qty) ?? v?.price ?? p.price,
     });
   }
   return out;
@@ -101,6 +109,7 @@ export async function createOrder(tenant: CurrentTenant, form: Record<string, un
       if (l.variant) await tx.variant.update({ where: { id: l.variant.id }, data: { stock: { decrement: l.qty } } });
       else await tx.product.update({ where: { id: l.product.id }, data: { stock: { decrement: l.qty } } });
     }
+    await tx.abandonedCheckout.updateMany({ where: { tenantId: tenant.id, phone }, data: { recovered: true } });
     if (couponCode) await tx.coupon.update({ where: { tenantId_code: { tenantId: tenant.id, code: couponCode } }, data: { used: { increment: 1 } } });
     return order;
   });

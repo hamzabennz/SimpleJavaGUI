@@ -12,7 +12,7 @@ export default async function NewProduct() {
       <ProductForm
         categories={cats.map((c) => ({ id: c.id, name: tr(c.name, "fr") }))}
         attributeFields={tenant.config.productAttributes}
-        initial={{ slug: "", name: { ar: "", fr: "" }, description: { ar: "", fr: "" }, status: "active", price: 0, compareAt: null, cost: null, categoryId: null, trackStock: false, stock: 0, images: [], attributes: {}, freeShipping: false, options: [], variants: [] }}
+        initial={{ slug: "", name: { ar: "", fr: "" }, description: { ar: "", fr: "" }, status: "active", price: 0, compareAt: null, cost: null, categoryId: null, trackStock: false, stock: 0, images: [], attributes: {}, freeShipping: false, offers: [], options: [], variants: [] }}
       />
     </>
   );

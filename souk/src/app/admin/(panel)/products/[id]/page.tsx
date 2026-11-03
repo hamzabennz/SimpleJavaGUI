@@ -25,6 +25,7 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
           id: p.id, slug: p.slug, name: L(p.name), description: L(p.description), status: p.status as any, price: p.price, compareAt: p.compareAt, cost: p.cost,
           categoryId: p.categoryId, trackStock: p.trackStock, stock: p.stock, images: p.images, attributes: (p.attributes as any) ?? {},
           freeShipping: !!(p.extra as any)?.freeShipping,
+          offers: (((p.extra as any)?.offers ?? []) as any[]).map((o) => ({ qty: o.qty, price: o.price, label: L(o.label) })),
           options: ((p.options as any[]) ?? []).map((o) => ({ name: L(o.name), values: o.values })),
           variants: p.variants.map((v) => ({ id: v.id, optionValues: v.optionValues as Record<string, string>, sku: v.sku, price: v.price, stock: v.stock })),
         }}
