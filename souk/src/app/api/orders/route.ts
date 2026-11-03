@@ -9,6 +9,7 @@ const Body = z.object({
   form: z.record(z.unknown()),
   lines: z.array(z.object({ productId: z.string(), variantId: z.string().nullish(), qty: z.number().int().min(1).max(99), upsellOf: z.string().nullish() })).min(1).max(50),
   coupon: z.string().max(40).optional(),
+  visitorId: z.string().max(40).optional(),
 });
 
 // naive in-memory rate limiter (swap for Redis in production)
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "too_many_requests" }, { status: 429 });
   }
   try {
-    const order = await createOrder(tenant, body.data.form, body.data.lines, { ip, coupon: body.data.coupon });
+    const order = await createOrder(tenant, body.data.form, body.data.lines, { ip, coupon: body.data.coupon, visitorId: body.data.visitorId });
     void notifyNewOrder(tenant.config, tenant.name, order);
     void sendPurchaseEvents(tenant.config.tracking, order, { ip, ua: req.headers.get("user-agent") ?? undefined, url: req.headers.get("referer") ?? undefined });
     return NextResponse.json({ id: order.id, number: order.number, total: order.total, phone: order.phone });

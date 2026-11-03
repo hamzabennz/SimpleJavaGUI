@@ -83,6 +83,11 @@ Object.assign(AR, { "Importer des produits (CSV)": "استيراد منتجات 
 AR["Message de confirmation WhatsApp"] = "رسالة التأكيد عبر واتساب";
 AR["risque"] = "خطر";
 AR["Bloquer les numéros ayant au moins N retours (0 = désactivé)"] = "حظر الأرقام التي لديها N مرتجعات على الأقل (0 = معطّل)";
+Object.assign(AR, {
+  "Paniers sans contact": "سلات بدون رقم", "Récupérés": "مُسترجَعة", "Valeur totale": "القيمة الإجمالية", "Dernière activité": "آخر نشاط",
+  "Visiteur anonyme": "زائر مجهول", "Aucun panier pour l'instant": "لا توجد سلات حالياً",
+  "Visiteurs qui ont ajouté des produits au panier sans commander ni laisser de numéro. Utile pour voir les produits qui intéressent mais ne convertissent pas.": "زوار أضافوا منتجات إلى السلة دون طلب أو ترك رقم. مفيد لمعرفة المنتجات التي تثير الاهتمام ولا تتحول إلى طلبات.",
+});
 AR["Coût des produits"] = "تكلفة المنتجات";
 AR["Attributs produits personnalisés"] = "خصائص المنتجات المخصصة";
 

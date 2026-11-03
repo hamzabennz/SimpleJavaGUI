@@ -5,6 +5,7 @@ import type { FieldDef } from "@/lib/forms";
 import { FieldInput } from "../FieldInput";
 import { dzd } from "@/lib/money";
 import { track } from "./Pixels";
+import { visitorId } from "./CartProvider";
 
 export type Rate = { w: number; home: number | null; desk: number | null };
 export type Line = { productId: string; variantId?: string | null; qty: number; name: string; variant?: string | null; price: number; upsellOf?: string | null };
@@ -41,7 +42,7 @@ export function OrderForm(p: Props) {
     const phone = (vals.phone ?? "").replace(/\s/g, "");
     if (!/^0[567]\d{8}$/.test(phone)) return;
     const h = setTimeout(() => {
-      fetch("/api/abandoned", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ form: vals, lines: p.lines }) }).catch(() => {});
+      fetch("/api/abandoned", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ visitorId: visitorId(), form: vals, lines: p.lines.map(({ productId, variantId, qty, name, variant, price }) => ({ productId, variantId, qty, name, variant, price })) }) }).catch(() => {});
     }, 1500);
     return () => clearTimeout(h);
   }, [vals, p.lines]);
@@ -64,7 +65,7 @@ export function OrderForm(p: Props) {
     try {
       const res = await fetch("/api/orders", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ form: vals, lines: p.lines.map(({ productId, variantId, qty, upsellOf }) => ({ productId, variantId, qty, upsellOf })), coupon }),
+        body: JSON.stringify({ form: vals, lines: p.lines.map(({ productId, variantId, qty, upsellOf }) => ({ productId, variantId, qty, upsellOf })), coupon, visitorId: visitorId() }),
       });
       const j = await res.json();
       if (!res.ok) {

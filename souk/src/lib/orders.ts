@@ -56,7 +56,7 @@ export class OrderError extends Error {
   constructor(public code: string, public fieldErrors?: Record<string, string>) { super(code); }
 }
 
-export async function createOrder(tenant: CurrentTenant, form: Record<string, unknown>, lines: CartLine[], meta: { ip?: string; coupon?: string; source?: string; skipBlacklist?: boolean; deliveryFeeOverride?: number }) {
+export async function createOrder(tenant: CurrentTenant, form: Record<string, unknown>, lines: CartLine[], meta: { ip?: string; coupon?: string; visitorId?: string; source?: string; skipBlacklist?: boolean; deliveryFeeOverride?: number }) {
   if (!lines.length) throw new OrderError("empty_cart");
   if (await checkLimit(tenant.id, "ordersPerMonth")) throw new OrderError("store_unavailable");
   const fields = tenant.config.checkout.fields;
@@ -136,7 +136,7 @@ export async function createOrder(tenant: CurrentTenant, form: Record<string, un
       if (l.variant) await tx.variant.update({ where: { id: l.variant.id }, data: { stock: { decrement: l.qty } } });
       else await tx.product.update({ where: { id: l.product.id }, data: { stock: { decrement: l.qty } } });
     }
-    await tx.abandonedCheckout.updateMany({ where: { tenantId: tenant.id, phone }, data: { recovered: true } });
+    await tx.abandonedCheckout.updateMany({ where: { tenantId: tenant.id, OR: [{ phone }, ...(meta.visitorId ? [{ visitorId: meta.visitorId }] : [])] }, data: { recovered: true } });
     if (couponCode) await tx.coupon.update({ where: { tenantId_code: { tenantId: tenant.id, code: couponCode } }, data: { used: { increment: 1 } } });
     return order;
   });
