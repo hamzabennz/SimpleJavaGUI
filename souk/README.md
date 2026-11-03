@@ -14,7 +14,11 @@ npm run db:seed                   # 2 demo stores
 npm run dev
 ```
 - Storefront: http://localhost:3000 (`?store=tech` switches tenant in dev, `?lang=fr` switches language)
-- Admin: http://localhost:3000/admin, logging in with `admin@demo.dz` / `admin123` (or `admin@tech.dz`)
+- Admin: http://localhost:3000/admin, logging in with `admin@demo.dz` / `admin123` (or `admin@tech.dz`). `?alang=ar` switches the admin to Arabic.
+- Platform console (SaaS owner): http://localhost:3000/platform, logging in with `root@souk.dz` / `admin123`
+- Self-serve signup: http://localhost:3000/signup
+- Tests: `npm test` (unit), `npm run typecheck`
+- Docker: `docker compose up --build`
 - In production each store is served at `<slug>.ROOT_DOMAIN` or at a custom domain (`Domain` table).
 
 ## How the SaaS configurability works
@@ -51,5 +55,29 @@ src/app/admin/            merchant back-office
 src/app/api/              order + communes endpoints
 ```
 
-## Next steps (see the spec roadmap)
-Carrier adapters (Yalidine, ZR Express), server-side pixel events (CAPI), staff management UI, image upload (S3/R2), super-admin billing.
+## Extension points
+| Add a… | Do this |
+|---|---|
+| Delivery company | Implement `CarrierAdapter` in `src/lib/carriers/<name>.ts`, register it in `src/lib/carriers/index.ts` |
+| Section type | Add the schema in `src/lib/sections.ts` and the renderer case in `components/store/Sections.tsx` |
+| Setting | Add it to `SettingsSchema` with a default. Existing tenants pick it up automatically. |
+| Admin language | Add a map in `src/lib/admin-i18n.ts` (keys are the French strings) |
+| Storefront language | Add a dict in `src/lib/i18n.ts` and extend `locale.enabled` |
+| Storage backend | Implement `Storage` in `src/lib/storage.ts` |
+
+## Environment variables
+| Var | Purpose |
+|---|---|
+| `DATABASE_URL` | Postgres connection |
+| `SESSION_SECRET` | HMAC key for admin sessions (**required in production**) |
+| `ROOT_DOMAIN` | e.g. `souk.dz`; stores live at `<slug>.souk.dz`, and the session cookie is shared across subdomains |
+| `DEFAULT_TENANT` | Store served when no host matches |
+| `CNAME_TARGET` / `SERVER_IP` | DNS targets shown to merchants for custom domains |
+| `UPLOAD_DIR` | Local upload directory |
+| `ALLOW_STORE_OVERRIDE=1` | Enables `?store=` in production (previews) |
+
+## Production notes
+- Put a wildcard TLS certificate for `*.ROOT_DOMAIN` in front of the app (Caddy can issue on-demand certificates for custom domains).
+- The in-memory rate limiters (orders, login, signup) are per-process. Use Redis when running several instances.
+- Carrier API field names come from public docs and must be verified with each carrier's sandbox before going live.
+- Integration secrets are stored in tenant settings JSON. Encrypt them at rest before production.

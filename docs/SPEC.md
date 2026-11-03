@@ -1,6 +1,6 @@
 # Souk SaaS: Multi-tenant E-commerce Platform for Algeria
 
-> Working name: "Souk". It can be renamed later. Status: **Draft v0.1**, waiting on the open questions in §14.
+> Working name: "Souk". It can be renamed later. Status: **v0.2**. The MVP and most of v1 are implemented in `/souk` (see §15).
 
 ## 1. Vision
 
@@ -203,5 +203,39 @@ Wilaya(code, name_ar, name_fr) / Commune(id, wilaya_code, name_ar, name_fr)
 | v2 | More carriers, Chargily, abandoned orders, reports, super-admin billing |
 | v3 | Custom domains with automatic SSL, app/plugin marketplace, public API, mobile admin app |
 
-## 14. Open Questions
-See the questions asked in the chat (stack, scope, languages, payments, carriers, hosting, design mode).
+## 14. Decisions taken
+| Question | Decision |
+|---|---|
+| Stack | Next.js + PostgreSQL (Prisma) |
+| Order flow | Both flows, toggled per tenant (`landing`, `cart`, `both`) |
+| Code location | `/souk` subfolder of this repo |
+| v1 integrations | Yalidine and ZR Express carriers, Meta and TikTok pixels (browser + server-side). Google Sheets sync dropped, since merchants manage orders in the admin. |
+
+### Still open
+- Final brand name and root domain (`ROOT_DOMAIN`)
+- Online payment (Chargily) timing, which is v2 for now
+- Hosting target in Algeria (local DC vs. EU cloud): affects latency and Law 18-07
+- Subscription billing flow (BaridiMob receipt upload vs. Chargily recurring)
+
+## 15. Implementation status
+
+| Area | Done | Notes |
+|---|---|---|
+| Multi-tenancy | ✅ | Host → custom domain → subdomain → `DEFAULT_TENANT`; `?store=` dev override |
+| Theme tokens → CSS vars | ✅ | Presets, colors, radius, fonts AR/Latin, button/card style, grid columns; sanitized |
+| Section page builder | ✅ | hero, product grid, categories, rich text, trust badges, FAQ, testimonials, countdown, image+text, video; home + custom pages |
+| Schema-driven checkout form | ✅ | Toggle, reorder, relabel AR/FR, required, width, custom fields; server-side Zod validation |
+| Product custom attributes | ✅ | Same form engine |
+| Storefront | ✅ | Home, catalog (filter/search/sort), product page, cart, thank-you, tracking, custom pages, sitemap/robots/JSON-LD, sticky mobile CTA |
+| COD checkout | ✅ | Wilaya → commune cascade (58 / 1,541), home/desk pricing, free-shipping rules, coupons, quantity offers, rate limiting |
+| Abandoned checkouts | ✅ | Captured once phone is valid; recovery list |
+| Orders admin | ✅ | Pipeline, configurable statuses, duplicate flag, blacklist, call/note log, edit order, manual orders, bulk actions, CSV, print slips |
+| Carriers | ✅ adapters | Yalidine, ZR Express, EcoTrack, Manual; status webhooks. **Field names must be verified against each carrier's live API.** |
+| Pixels | ✅ | Meta + TikTok browser events, server-side CAPI/Events API with event_id dedup |
+| Notifications | ✅ | Telegram on new order |
+| Staff & roles | ✅ | owner / manager / confirmer / stock |
+| Reports | ✅ | Revenue, COGS, return cost, profit, per product, per wilaya delivery rate |
+| Admin i18n | ✅ | French + Arabic (RTL) |
+| SaaS | ✅ | Self-serve signup, plan limits & features, platform console (tenants, plans, MRR), custom domains with DNS check |
+| Uploads | ✅ local | Storage adapter; S3/R2 driver to add |
+| Not yet | ⏳ | Chargily payments, SMS/WhatsApp to customers, product reviews, Redis queue/rate limiting, encrypted integration secrets, automatic SSL for custom domains, carrier polling, staff assignment of orders, audit log UI |
