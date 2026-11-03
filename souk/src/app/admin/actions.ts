@@ -11,6 +11,7 @@ import { carriers } from "@/lib/carriers";
 import { wilayas } from "@/lib/algeria";
 import { provisionTenant, storeUrl } from "@/lib/provision";
 import { checkLimit } from "@/lib/plans";
+import { decryptSecret, keepOrEncrypt } from "@/lib/secrets";
 import { createOrder, OrderError, type CartLine } from "@/lib/orders";
 
 // ---------- auth ----------
@@ -219,7 +220,7 @@ export async function shipOrders(orderIds: string[], carrierId?: string) {
   const id = carrierId || tenant.config.integrations.defaultCarrier;
   const adapter = carriers[id];
   if (!adapter) return { results: [{ number: 0, ok: false, error: "Transporteur inconnu" }] };
-  const creds = tenant.config.integrations.carriers[id] ?? {};
+  const creds = Object.fromEntries(Object.entries(tenant.config.integrations.carriers[id] ?? {}).map(([k, v]) => [k, decryptSecret(v) ?? ""]));
   const missing = adapter.credentials.filter((c) => !creds[c.key]);
   if (missing.length) return { results: [{ number: 0, ok: false, error: `Identifiants ${adapter.name} manquants (Paramètres)` }] };
   const orders = await db.order.findMany({ where: { id: { in: orderIds }, tenantId: tenant.id, trackingNumber: null }, include: { items: true } });
@@ -248,11 +249,24 @@ export async function shipConfirmed() {
 
 export async function saveIntegrations(patch: { defaultCarrier: string; carriers: Record<string, Record<string, string>>; metaAccessToken?: string; tiktokAccessToken?: string; telegramBotToken?: string; telegramChatId?: string }) {
   const { tenant } = await requireAdmin("*");
-  const next = mergeSettings(tenant.config, {
-    integrations: { defaultCarrier: patch.defaultCarrier, carriers: patch.carriers },
-    tracking: { metaAccessToken: patch.metaAccessToken || undefined, tiktokAccessToken: patch.tiktokAccessToken || undefined },
-    notifications: { telegram: { botToken: patch.telegramBotToken || undefined, chatId: patch.telegramChatId || undefined } },
+  const cur = tenant.config;
+  const secretKeys = new Set(Object.values(carriers).flatMap((a) => a.credentials.filter((c) => c.secret).map((c) => c.key)));
+  const carriersOut: Record<string, Record<string, string>> = {};
+  for (const [cid, vals] of Object.entries(patch.carriers)) {
+    carriersOut[cid] = {};
+    for (const [k, v] of Object.entries(vals)) {
+      const stored = cur.integrations.carriers[cid]?.[k];
+      const out = secretKeys.has(k) ? keepOrEncrypt(v, stored) : v;
+      if (out) carriersOut[cid][k] = out;
+    }
+  }
+  const next = mergeSettings(cur, {
+    integrations: { defaultCarrier: patch.defaultCarrier, carriers: carriersOut },
+    tracking: { metaAccessToken: keepOrEncrypt(patch.metaAccessToken, cur.tracking.metaAccessToken), tiktokAccessToken: keepOrEncrypt(patch.tiktokAccessToken, cur.tracking.tiktokAccessToken) },
+    notifications: { telegram: { botToken: keepOrEncrypt(patch.telegramBotToken, cur.notifications.telegram.botToken), chatId: patch.telegramChatId || undefined } },
   });
+  // mergeSettings deep-merges: replace carriers wholesale so cleared fields are removed
+  next.integrations.carriers = carriersOut;
   await db.tenant.update({ where: { id: tenant.id }, data: { settings: next as any } });
   return { ok: true };
 }

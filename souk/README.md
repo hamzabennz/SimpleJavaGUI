@@ -70,6 +70,7 @@ src/app/api/              order + communes endpoints
 |---|---|
 | `DATABASE_URL` | Postgres connection |
 | `SESSION_SECRET` | HMAC key for admin sessions (**required in production**) |
+| `SECRETS_KEY` | AES-256-GCM key that encrypts integration secrets at rest (**required in production**) |
 | `ROOT_DOMAIN` | e.g. `souk.dz`; stores live at `<slug>.souk.dz`, and the session cookie is shared across subdomains |
 | `DEFAULT_TENANT` | Store served when no host matches |
 | `CNAME_TARGET` / `SERVER_IP` | DNS targets shown to merchants for custom domains |
@@ -80,4 +81,4 @@ src/app/api/              order + communes endpoints
 - Put a wildcard TLS certificate for `*.ROOT_DOMAIN` in front of the app (Caddy can issue on-demand certificates for custom domains).
 - The in-memory rate limiters (orders, login, signup) are per-process. Use Redis when running several instances.
 - Carrier API field names come from public docs and must be verified with each carrier's sandbox before going live.
-- Integration secrets are stored in tenant settings JSON. Encrypt them at rest before production.
+- Integration secrets (carrier keys, pixel and Telegram tokens) are encrypted with `SECRETS_KEY` and never sent back to the browser (masked).

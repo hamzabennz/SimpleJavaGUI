@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import type { Order } from "@prisma/client";
 import type { Settings } from "./settings";
+import { decryptSecret } from "./secrets";
 
 const sha = (s: string) => crypto.createHash("sha256").update(s.trim().toLowerCase()).digest("hex");
 const e164 = (phone: string) => "213" + phone.replace(/^0/, "");
@@ -12,6 +13,7 @@ const e164 = (phone: string) => "213" + phone.replace(/^0/, "");
  */
 export async function sendPurchaseEvents(tracking: Settings["tracking"], order: Order, ctx: { ip?: string; ua?: string; url?: string }) {
   const jobs: Promise<unknown>[] = [];
+  tracking = { ...tracking, metaAccessToken: decryptSecret(tracking.metaAccessToken), tiktokAccessToken: decryptSecret(tracking.tiktokAccessToken) };
   if (tracking.metaPixelId && tracking.metaAccessToken) {
     jobs.push(fetch(`https://graph.facebook.com/v19.0/${tracking.metaPixelId}/events?access_token=${encodeURIComponent(tracking.metaAccessToken)}`, {
       method: "POST", headers: { "content-type": "application/json" },

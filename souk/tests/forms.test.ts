@@ -75,3 +75,16 @@ describe("theme sanitization", () => {
     expect(themeToCss(s.theme)).not.toContain("<");
   });
 });
+
+describe("secrets", () => {
+  it("round-trips with AES-GCM and masks", async () => {
+    process.env.SECRETS_KEY = "test-key-0123456789-abcdefghijklmnop";
+    const { encryptSecret, decryptSecret, keepOrEncrypt, MASK } = await import("../src/lib/secrets");
+    const e = encryptSecret("tok_123")!;
+    expect(e.startsWith("enc:v1:")).toBe(true);
+    expect(e).not.toContain("tok_123");
+    expect(decryptSecret(e)).toBe("tok_123");
+    expect(keepOrEncrypt(MASK, e)).toBe(e);
+    expect(keepOrEncrypt("", e)).toBeUndefined();
+  });
+});

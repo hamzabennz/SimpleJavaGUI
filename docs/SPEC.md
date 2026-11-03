@@ -233,9 +233,13 @@ Wilaya(code, name_ar, name_fr) / Commune(id, wilaya_code, name_ar, name_fr)
 | Carriers | ✅ adapters | Yalidine, ZR Express, EcoTrack, Manual; status webhooks. **Field names must be verified against each carrier's live API.** |
 | Pixels | ✅ | Meta + TikTok browser events, server-side CAPI/Events API with event_id dedup |
 | Notifications | ✅ | Telegram on new order |
+| Reviews | ✅ | Moderated, verified-purchase badge, aggregate rating in JSON-LD |
+| Upsell / offers | ✅ | Quantity offers and per-product upsell, both priced on the server |
+| Call center | ✅ | Order assignment, round-robin auto-assign, confirmer queues |
+| Secrets | ✅ | AES-256-GCM at rest, masked in UI |
 | Staff & roles | ✅ | owner / manager / confirmer / stock |
 | Reports | ✅ | Revenue, COGS, return cost, profit, per product, per wilaya delivery rate |
 | Admin i18n | ✅ | French + Arabic (RTL) |
 | SaaS | ✅ | Self-serve signup, plan limits & features, platform console (tenants, plans, MRR), custom domains with DNS check |
 | Uploads | ✅ local | Storage adapter; S3/R2 driver to add |
-| Not yet | ⏳ | Chargily payments, SMS/WhatsApp to customers, product reviews, Redis queue/rate limiting, encrypted integration secrets, automatic SSL for custom domains, carrier polling, staff assignment of orders, audit log UI |
+| Not yet | ⏳ | Chargily payments, SMS/WhatsApp to customers, product reviews, Redis queue/rate limiting, automatic SSL for custom domains, carrier polling, audit log UI |

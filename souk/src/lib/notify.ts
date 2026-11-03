@@ -2,13 +2,14 @@ import type { Order, OrderItem } from "@prisma/client";
 import type { Settings } from "./settings";
 import { wilayaName } from "./algeria";
 import { dzd } from "./money";
+import { decryptSecret } from "./secrets";
 
 /**
  * Merchant notifications on new orders. Telegram is the de-facto channel for Algerian sellers.
  * Each channel is optional and fire-and-forget.
  */
 export async function notifyNewOrder(settings: Settings, storeName: string, order: Order & { items: OrderItem[] }) {
-  const tg = settings.notifications.telegram;
+  const tg = { ...settings.notifications.telegram, botToken: decryptSecret(settings.notifications.telegram.botToken) };
   if (tg.botToken && tg.chatId) {
     const text = [
       `🛒 <b>${esc(storeName)}</b> — nouvelle commande #${order.number}`,
