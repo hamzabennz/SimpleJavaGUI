@@ -10,6 +10,7 @@ import { mergeSettings } from "@/lib/settings";
 import { carriers } from "@/lib/carriers";
 import { wilayas } from "@/lib/algeria";
 import { provisionTenant, storeUrl } from "@/lib/provision";
+import { checkLimit } from "@/lib/plans";
 
 // ---------- auth ----------
 export async function login(_: unknown, fd: FormData) {
@@ -113,6 +114,7 @@ export async function saveProduct(input: ProductInputT) {
   const r = ProductInput.safeParse(input);
   if (!r.success) return { error: r.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", ") };
   const d = r.data;
+  if (d.categoryId && !(await db.category.findFirst({ where: { id: d.categoryId, tenantId: tenant.id } }))) return { error: "Catégorie invalide" };
   const data = {
     slug: d.slug, name: d.name, description: d.description, status: d.status, price: d.price, compareAt: d.compareAt, cost: d.cost,
     categoryId: d.categoryId, trackStock: d.trackStock, stock: d.stock, images: d.images, attributes: d.attributes as any,
@@ -125,6 +127,8 @@ export async function saveProduct(input: ProductInputT) {
       if (!own) return { error: "not found" };
       await db.product.update({ where: { id }, data });
     } else {
+      const limit = await checkLimit(tenant.id, "products");
+      if (limit) return { error: limit };
       id = (await db.product.create({ data: { ...data, tenantId: tenant.id } })).id;
     }
     // sync variants
@@ -132,7 +136,7 @@ export async function saveProduct(input: ProductInputT) {
     await db.variant.deleteMany({ where: { productId: id, id: { notIn: keep } } });
     for (const v of d.variants) {
       const vd = { optionValues: v.optionValues, sku: v.sku, price: v.price, stock: v.stock };
-      if (v.id) await db.variant.update({ where: { id: v.id }, data: vd });
+      if (v.id) await db.variant.updateMany({ where: { id: v.id, productId: id }, data: vd }); // scoped to this product
       else await db.variant.create({ data: { ...vd, productId: id } });
     }
     revalidatePath("/", "layout");
@@ -242,6 +246,8 @@ export async function addStaff(_: unknown, fd: FormData) {
   const email = String(fd.get("email") ?? "").toLowerCase().trim();
   const role = String(fd.get("role") ?? "confirmer");
   if (!email || !["manager", "confirmer", "stock"].includes(role)) return { error: "Données invalides" };
+  const limit = await checkLimit(tenant.id, "staff");
+  if (limit) return { error: limit };
   let user = await db.user.findUnique({ where: { email } });
   if (!user) {
     const pw = String(fd.get("password") ?? "");

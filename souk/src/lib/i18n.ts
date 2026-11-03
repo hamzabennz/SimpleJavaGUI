@@ -15,6 +15,7 @@ const dict = {
     invalid_option: "اختيار غير صالح", invalid_format: "صيغة غير صحيحة", not_delivered: "التوصيل غير متوفر لهذه الولاية",
     remove: "حذف", status: "الحالة", phone: "رقم الهاتف", find: "بحث", not_found: "لم يتم العثور على الطلب",
     cod: "الدفع عند الاستلام", related: "منتجات ذات صلة", sending: "جارٍ الإرسال...", coupon: "كود التخفيض", discount: "تخفيض",
+    store_unavailable: "المتجر غير متاح حالياً", out_of_stock_short: "الكمية غير متوفرة", product_unavailable: "المنتج غير متوفر", blocked: "لا يمكن إتمام الطلب، اتصل بنا", too_many_requests: "محاولات كثيرة، حاول لاحقاً",
   },
   fr: {
     home: "Accueil", products: "Produits", cart: "Panier", order_now: "Commander", add_to_cart: "Ajouter au panier",
@@ -26,6 +27,7 @@ const dict = {
     invalid_option: "Option invalide", invalid_format: "Format invalide", not_delivered: "Livraison indisponible pour cette wilaya",
     remove: "Retirer", status: "Statut", phone: "Téléphone", find: "Rechercher", not_found: "Commande introuvable",
     cod: "Paiement à la livraison", related: "Produits similaires", sending: "Envoi...", coupon: "Code promo", discount: "Remise",
+    store_unavailable: "Boutique momentanément indisponible", out_of_stock_short: "Quantité indisponible", product_unavailable: "Produit indisponible", blocked: "Commande impossible, contactez-nous", too_many_requests: "Trop de tentatives, réessayez plus tard",
   },
 } as const;
 

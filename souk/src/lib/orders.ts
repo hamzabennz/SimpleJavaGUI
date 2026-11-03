@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { checkLimit } from "./plans";
 import { buildValidator, BUILTIN_ORDER_KEYS } from "./forms";
 import type { CurrentTenant } from "./tenant";
 
@@ -48,6 +49,7 @@ export class OrderError extends Error {
 
 export async function createOrder(tenant: CurrentTenant, form: Record<string, unknown>, lines: CartLine[], meta: { ip?: string; coupon?: string }) {
   if (!lines.length) throw new OrderError("empty_cart");
+  if (await checkLimit(tenant.id, "ordersPerMonth")) throw new OrderError("store_unavailable");
   const fields = tenant.config.checkout.fields;
   const parsed = buildValidator(fields).safeParse(form);
   if (!parsed.success) {
