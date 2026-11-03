@@ -14,7 +14,7 @@ export default async function Customers({ searchParams }: { searchParams: Promis
   });
   return (
     <>
-      <h1>{t("Clients")}</h1>
+      <div className="row between wrap"><h1>{t("Clients")}</h1><a className="btn ghost sm" href="/admin/customers/export">{t("⬇ Export CSV")}</a></div>
       <form className="row" style={{ marginBottom: 12 }}><input name="q" defaultValue={q} placeholder={t("Nom ou téléphone")} style={{ maxWidth: 300 }} /><button className="btn sm">{t("Rechercher")}</button></form>
       <div className="card table-wrap" style={{ padding: 0 }}>
         <table className="tbl">

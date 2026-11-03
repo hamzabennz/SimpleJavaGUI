@@ -7,12 +7,14 @@ import { tr } from "@/lib/i18n";
 import { saveCategory } from "../../actions";
 import { ImportCsv } from "./ImportCsv";
 
-export default async function Products({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+export default async function Products({ searchParams }: { searchParams: Promise<{ q?: string; page?: string }> }) {
   const { tenant } = await requireAdmin("products");
   const { t } = await adminT();
-  const q = (await searchParams).q?.trim();
+  const sp = await searchParams;
+  const q = sp.q?.trim();
+  const page = Math.max(1, Number(sp.page) || 1);
   const [products, cats] = await Promise.all([
-    db.product.findMany({ where: { tenantId: tenant.id, ...(q ? { slug: { contains: q, mode: "insensitive" } } : {}) }, include: { variants: true, category: true, _count: { select: { orderItems: true } } }, orderBy: { createdAt: "desc" } }),
+    db.product.findMany({ where: { tenantId: tenant.id, ...(q ? { slug: { contains: q, mode: "insensitive" } } : {}) }, include: { variants: true, category: true, _count: { select: { orderItems: true } } }, orderBy: { createdAt: "desc" }, take: 100, skip: (page - 1) * 100 }),
     db.category.findMany({ where: { tenantId: tenant.id }, orderBy: { position: "asc" } }),
   ]);
   const statusColor: Record<string, string> = { active: "#16a34a", draft: "#64748b", archived: "#a3a3a3" };
@@ -41,6 +43,10 @@ export default async function Products({ searchParams }: { searchParams: Promise
             );
           })}</tbody>
         </table>
+      </div>
+      <div className="row" style={{ marginTop: 8 }}>
+        {page > 1 && <Link className="btn ghost sm" href={`?page=${page - 1}${q ? `&q=${q}` : ""}`}>←</Link>}
+        {products.length === 100 && <Link className="btn ghost sm" href={`?page=${page + 1}${q ? `&q=${q}` : ""}`}>→</Link>}
       </div>
       <div style={{ marginTop: 16 }}><ImportCsv /></div>
       <h3>{t("Catégories")}</h3>

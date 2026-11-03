@@ -4,7 +4,7 @@ import { requireTenant } from "@/lib/tenant";
 import { getDict, getLang, tr } from "@/lib/i18n";
 import { ProductCard } from "@/components/store/ProductCard";
 
-export default async function Products({ searchParams }: { searchParams: Promise<{ c?: string; q?: string; sort?: string }> }) {
+export default async function Products({ searchParams }: { searchParams: Promise<{ c?: string; q?: string; sort?: string; page?: string }> }) {
   const sp = await searchParams;
   const tenant = await requireTenant();
   const lang = await getLang(tenant);
@@ -12,13 +12,17 @@ export default async function Products({ searchParams }: { searchParams: Promise
   const cats = await db.category.findMany({ where: { tenantId: tenant.id }, orderBy: { position: "asc" } });
   const cat = cats.find((c) => c.slug === sp.c);
   const q = sp.q?.trim();
-  const products = await db.product.findMany({
-    where: {
+  const PER = 24;
+  const page = Math.max(1, Number(sp.page) || 1);
+  const where = {
       tenantId: tenant.id, status: "active", ...(cat ? { categoryId: cat.id } : {}),
-      ...(q ? { OR: [{ slug: { contains: q, mode: "insensitive" } }, { name: { path: ["fr"], string_contains: q } }, { name: { path: ["ar"], string_contains: q } }] } : {}),
-    },
+      ...(q ? { OR: [{ slug: { contains: q, mode: "insensitive" as const } }, { name: { path: ["fr"], string_contains: q } }, { name: { path: ["ar"], string_contains: q } }] } : {}),
+  };
+  const [products, total] = await Promise.all([db.product.findMany({
+    where, skip: (page - 1) * PER, take: PER,
     orderBy: sp.sort === "price_asc" ? { price: "asc" } : sp.sort === "price_desc" ? { price: "desc" } : { createdAt: "desc" },
-  });
+  }), db.product.count({ where })]);
+  const href = (n: number) => "?" + new URLSearchParams(Object.entries({ c: sp.c, q, sort: sp.sort, page: String(n) }).filter(([, v]) => v) as [string, string][]).toString();
   return (
     <div className="container section">
       <div className="row between wrap" style={{ marginBottom: 16 }}>
@@ -36,6 +40,13 @@ export default async function Products({ searchParams }: { searchParams: Promise
         </form>
       </div>
       <div className="grid">{products.map((p) => <ProductCard key={p.id} p={p} lang={lang} style={tenant.config.theme.productCard} />)}</div>
+      {total > PER && (
+        <div className="row" style={{ justifyContent: "center", marginTop: 24 }}>
+          {page > 1 && <Link className="btn ghost sm" href={href(page - 1)}>‹</Link>}
+          <span className="muted">{page} / {Math.ceil(total / PER)}</span>
+          {page * PER < total && <Link className="btn ghost sm" href={href(page + 1)}>›</Link>}
+        </div>
+      )}
     </div>
   );
 }
