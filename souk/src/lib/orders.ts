@@ -47,7 +47,7 @@ export class OrderError extends Error {
   constructor(public code: string, public fieldErrors?: Record<string, string>) { super(code); }
 }
 
-export async function createOrder(tenant: CurrentTenant, form: Record<string, unknown>, lines: CartLine[], meta: { ip?: string; coupon?: string }) {
+export async function createOrder(tenant: CurrentTenant, form: Record<string, unknown>, lines: CartLine[], meta: { ip?: string; coupon?: string; source?: string; skipBlacklist?: boolean; deliveryFeeOverride?: number }) {
   if (!lines.length) throw new OrderError("empty_cart");
   if (await checkLimit(tenant.id, "ordersPerMonth")) throw new OrderError("store_unavailable");
   const fields = tenant.config.checkout.fields;
@@ -68,6 +68,7 @@ export async function createOrder(tenant: CurrentTenant, form: Record<string, un
   const subtotal = priced.reduce((s, l) => s + l.unitPrice * l.qty, 0);
 
   let fee = await deliveryFee(tenant.id, wilaya, deliveryType);
+  if (meta.deliveryFeeOverride !== undefined) fee = meta.deliveryFeeOverride;
   if (fee === null) throw new OrderError("validation", { wilaya: "not_delivered" });
   const freeOver = tenant.config.checkout.freeShippingOver;
   if ((freeOver && subtotal >= freeOver) || priced.every((l) => (l.product.extra as any)?.freeShipping)) fee = 0;
@@ -89,7 +90,7 @@ export async function createOrder(tenant: CurrentTenant, form: Record<string, un
     create: { tenantId: tenant.id, phone, name: String(data.name ?? phone), email: data.email },
     update: { name: String(data.name ?? phone) },
   });
-  if (customer.blacklisted) throw new OrderError("blocked");
+  if (customer.blacklisted && !meta.skipBlacklist) throw new OrderError("blocked");
 
   const custom: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(data)) if (!(BUILTIN_ORDER_KEYS as readonly string[]).includes(k)) custom[k] = v;
@@ -101,7 +102,7 @@ export async function createOrder(tenant: CurrentTenant, form: Record<string, un
         tenantId: tenant.id, number: (last?.number ?? 1000) + 1, customerId: customer.id,
         name: String(data.name ?? ""), phone, wilayaCode: wilaya, commune: data.commune, address: data.address,
         deliveryType, deliveryFee: fee!, subtotal, discount, total: subtotal - discount + fee!, couponCode,
-        customFields: custom as any, ip: meta.ip,
+        customFields: custom as any, ip: meta.ip, source: meta.source ?? "storefront",
         items: { create: priced.map((l) => ({ productId: l.product.id, variantId: l.variant?.id, name: l.name, variant: l.variantLabel, unitPrice: l.unitPrice, qty: l.qty })) },
         events: { create: { type: "status", toStatus: "new", note: "created" } },
       },

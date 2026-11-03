@@ -31,6 +31,7 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
       <div className="row between wrap">
         <h1>Commandes</h1>
         <div className="row wrap">
+          <Link href="/admin/orders/new" className="btn sm">+ Commande manuelle</Link>
           <ShipButton label="Expédier les commandes confirmées" />
           <a className="btn ghost sm" href={`/admin/orders/export${qs({})}`}>⬇ Export CSV</a>
         </div>
@@ -58,7 +59,7 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
                 <td>
                   {o.name} {o.customer?.blacklisted && <span className="badge" style={{ background: "#000" }}>⛔ blacklist</span>}
                   {dupPhones.has(o.phone) && <span className="badge" style={{ background: "#f59e0b" }}>doublon?</span>}
-                  <div className="muted" dir="ltr" style={{ fontSize: ".85rem" }}>{o.phone}</div>
+                  <div className="muted" dir="ltr" style={{ fontSize: ".85rem" }}>{o.phone}{o.source !== "storefront" && <> · {o.source}</>}</div>
                 </td>
                 <td>{wilayaName(o.wilayaCode)}<div className="muted" style={{ fontSize: ".8rem" }}>{o.deliveryType === "desk" ? "Stop desk" : "Domicile"}</div></td>
                 <td style={{ fontSize: ".85rem" }}>{o.items.map((i) => `${i.name}${i.variant ? ` (${i.variant})` : ""} ×${i.qty}`).join(", ")}</td>

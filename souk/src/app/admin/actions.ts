@@ -11,6 +11,7 @@ import { carriers } from "@/lib/carriers";
 import { wilayas } from "@/lib/algeria";
 import { provisionTenant, storeUrl } from "@/lib/provision";
 import { checkLimit } from "@/lib/plans";
+import { createOrder, OrderError, type CartLine } from "@/lib/orders";
 
 // ---------- auth ----------
 export async function login(_: unknown, fd: FormData) {
@@ -303,4 +304,20 @@ export async function signup(_: unknown, fd: FormData) {
   const user = await db.user.findUnique({ where: { email } });
   if (user) await createSession(user.id);
   return { ok: true, adminUrl: storeUrl(r.tenant.slug, "/admin"), storeUrl: storeUrl(r.tenant.slug) };
+}
+
+// ---------- manual order (phone / WhatsApp / Messenger) ----------
+export async function createManualOrder(input: { form: Record<string, string>; lines: CartLine[]; source: string; deliveryFee?: number | null }) {
+  const { tenant, user } = await requireAdmin("orders");
+  try {
+    const o = await createOrder(tenant, input.form, input.lines, {
+      source: input.source, skipBlacklist: true, deliveryFeeOverride: input.deliveryFee ?? undefined,
+    });
+    await db.orderEvent.create({ data: { orderId: o.id, type: "note", note: `Commande manuelle (${input.source})`, userId: user.id } });
+    revalidatePath("/admin/orders");
+    return { ok: true, id: o.id };
+  } catch (e) {
+    if (e instanceof OrderError) return { error: e.code, fieldErrors: e.fieldErrors };
+    throw e;
+  }
 }
