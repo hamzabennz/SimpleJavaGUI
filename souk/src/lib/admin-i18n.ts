@@ -76,6 +76,7 @@ AR["Modifier la commande"] = "تعديل الطلب";
 AR["Frais de livraison"] = "مصاريف التوصيل";
 AR["Annuler"] = "إلغاء";
 AR["Stock faible"] = "مخزون منخفض";
+Object.assign(AR, { "Mes commandes": "طلباتي", "Assignée à": "مُسندة إلى", "Répartition automatique des nouvelles commandes entre les confirmateurs": "توزيع تلقائي للطلبات الجديدة على المؤكِّدين", "Activée": "مفعّلة", "Désactivée": "معطّلة" });
 AR["Coût des produits"] = "تكلفة المنتجات";
 AR["Attributs produits personnalisés"] = "خصائص المنتجات المخصصة";
 

@@ -74,6 +74,8 @@ export const SettingsSchema = z.object({
     freeShippingOver: z.number().int().nullable().default(null),
     successMessage: LocalizedSchema.default({ ar: "شكراً! سنتصل بك قريباً لتأكيد طلبك.", fr: "Merci ! Nous vous appellerons bientôt pour confirmer votre commande." }),
     duplicateWindowHours: z.number().default(24),
+    /** Round-robin new orders to confirmers */
+    autoAssign: z.boolean().default(false),
   }).default({}),
   /** Merchant-defined extra product attributes (e.g. Material, Warranty) */
   productAttributes: z.array(FieldDefSchema).default([]),

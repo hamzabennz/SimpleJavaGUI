@@ -25,9 +25,13 @@ export async function POST(req: Request) {
   const tenant = await getTenant();
   if (!tenant) return NextResponse.json({ error: "store_not_found" }, { status: 404 });
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "local";
-  if (limited(`${tenant.id}:${ip}`)) return NextResponse.json({ error: "too_many_requests" }, { status: 429 });
   const body = Body.safeParse(await req.json().catch(() => null));
   if (!body.success) return NextResponse.json({ error: "bad_request" }, { status: 400 });
+  // Mobile carriers in Algeria use CGNAT (many customers share one IP): limit mostly per phone, loosely per IP.
+  const phoneKey = String(body.data.form.phone ?? "").replace(/\D/g, "").slice(-9);
+  if (limited(`${tenant.id}:ip:${ip}`, 40) || (phoneKey && limited(`${tenant.id}:ph:${phoneKey}`, 3))) {
+    return NextResponse.json({ error: "too_many_requests" }, { status: 429 });
+  }
   try {
     const order = await createOrder(tenant, body.data.form, body.data.lines, { ip, coupon: body.data.coupon });
     void notifyNewOrder(tenant.config, tenant.name, order);

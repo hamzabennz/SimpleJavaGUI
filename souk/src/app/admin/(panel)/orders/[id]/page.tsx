@@ -9,7 +9,7 @@ import { tr } from "@/lib/i18n";
 import { StatusButtons } from "../StatusButtons";
 import { ShipButton } from "../ShipButton";
 import { EditOrder } from "./EditOrder";
-import { addOrderNote, updateOrderShipping, toggleBlacklist } from "../../../actions";
+import { addOrderNote, updateOrderShipping, toggleBlacklist, assignOrder } from "../../../actions";
 
 export default async function OrderDetail({ params }: { params: Promise<{ id: string }> }) {
   const { tenant } = await requireAdmin("orders");
@@ -23,6 +23,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
   const statuses = tenant.config.orderStatuses.map((s) => ({ key: s.key, label: s.label[lang] || s.label.fr, color: s.color }));
   const label = (k: string | null) => statuses.find((s) => s.key === k)?.label ?? k;
   const products = ["shipped", "delivered", "returned"].includes(o.status) ? [] : await db.product.findMany({ where: { tenantId: tenant.id, status: "active" }, include: { variants: true } });
+  const team = await db.membership.findMany({ where: { tenantId: tenant.id }, include: { user: { select: { id: true, name: true } } } });
   const customFields = tenant.config.checkout.fields.filter((f) => (o.customFields as any)?.[f.key] !== undefined);
   return (
     <>
@@ -80,6 +81,11 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
         </div>
         <div className="card stack">
           <h3 style={{ margin: 0 }}>{t("Suivi & appels")}</h3>
+          <form action={assignOrder.bind(null, o.id)} className="row">
+            <label style={{ whiteSpace: "nowrap" }}>{t("Assignée à")}</label>
+            <select name="userId" defaultValue={o.assignedToId ?? ""}><option value="">—</option>{team.map((m) => <option key={m.userId} value={m.userId}>{m.user.name} ({m.role})</option>)}</select>
+            <button className="btn sm ghost">OK</button>
+          </form>
           <form action={addOrderNote.bind(null, o.id)} className="stack">
             <textarea name="note" rows={2} placeholder={t("Note (ex: rappeler à 18h)")} />
             <div className="row">

@@ -16,10 +16,11 @@ type Props = {
   flow: "landing" | "cart" | "both";
   lang: "ar" | "fr";
   t: Record<string, string>;
+  whatsapp?: string;
   checkout: { fields: FieldDef[]; wilayas: { code: number; ar: string; fr: string }[]; rates: Rate[]; deskEnabled: boolean; freeShippingOver: number | null };
 };
 
-export function ProductBuy({ product, options, variants, offers = [], flow, lang, t, checkout }: Props) {
+export function ProductBuy({ product, options, variants, offers = [], flow, lang, t, checkout, whatsapp }: Props) {
   const router = useRouter();
   const cart = useCart();
   const [sel, setSel] = useState<Record<string, string>>(() => Object.fromEntries(options.map((o) => [o.name, o.values[0]])));
@@ -94,6 +95,12 @@ export function ProductBuy({ product, options, variants, offers = [], flow, lang
                 track("AddToCart", { value: price * qty, currency: "DZD" });
                 if (flow === "cart") router.push("/cart");
               }}>🛒 {t.add_to_cart}</button>
+            )}
+            {whatsapp && (
+              <a className="btn ghost block" target="_blank" rel="noopener"
+                href={`https://wa.me/${whatsapp.replace(/\D/g, "").replace(/^0/, "213")}?text=${encodeURIComponent(`${product.name}${variantLabel ? ` (${variantLabel})` : ""} × ${qty}`)}`}>
+                💬 {lang === "ar" ? "اطلب عبر واتساب" : "Commander via WhatsApp"}
+              </a>
             )}
             {flow !== "cart" && (
               <div id="order-form" className="card" style={{ borderColor: "var(--c-primary)", borderWidth: 2 }}>

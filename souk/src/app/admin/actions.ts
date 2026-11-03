@@ -453,3 +453,18 @@ export async function savePlan(fd: FormData) {
   else await db.plan.create({ data }).catch(() => null);
   revalidatePath("/platform");
 }
+
+export async function assignOrder(orderId: string, fd: FormData) {
+  const { tenant, user } = await requireAdmin("orders");
+  const to = String(fd.get("userId") || "") || null;
+  if (to && !(await db.membership.findFirst({ where: { tenantId: tenant.id, userId: to } }))) return;
+  const o = await db.order.findFirst({ where: { id: orderId, tenantId: tenant.id } });
+  if (!o) return;
+  await db.order.update({ where: { id: o.id }, data: { assignedToId: to, events: { create: { type: "note", note: `Assignée à ${to ? (await db.user.findUnique({ where: { id: to } }))?.name : "personne"}`, userId: user.id } } } });
+  revalidatePath(`/admin/orders/${orderId}`);
+}
+export async function toggleAutoAssign() {
+  const { tenant } = await requireAdmin("*");
+  await db.tenant.update({ where: { id: tenant.id }, data: { settings: mergeSettings(tenant.config, { checkout: { autoAssign: !tenant.config.checkout.autoAssign } }) as any } });
+  revalidatePath("/admin/staff");
+}

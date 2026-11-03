@@ -45,6 +45,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         variants={variants}
         offers={(((product.extra as any)?.offers ?? []) as any[]).map((o) => ({ qty: o.qty, price: o.price, label: tr(o.label, lang) || undefined }))}
         flow={tenant.config.orderFlow}
+        whatsapp={tenant.config.store.whatsapp}
         lang={lang}
         t={t}
         checkout={await checkoutContext(tenant)}

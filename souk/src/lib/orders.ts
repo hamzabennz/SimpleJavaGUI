@@ -95,6 +95,16 @@ export async function createOrder(tenant: CurrentTenant, form: Record<string, un
   const custom: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(data)) if (!(BUILTIN_ORDER_KEYS as readonly string[]).includes(k)) custom[k] = v;
 
+  // round-robin: confirmer with the fewest open orders
+  let assignedToId: string | undefined;
+  if (tenant.config.checkout.autoAssign) {
+    const confirmers = await db.membership.findMany({ where: { tenantId: tenant.id, role: "confirmer" }, select: { userId: true } });
+    if (confirmers.length) {
+      const loads = await db.order.groupBy({ by: ["assignedToId"], where: { tenantId: tenant.id, status: { in: ["new", "no_answer", "postponed"] }, assignedToId: { in: confirmers.map((c) => c.userId) } }, _count: true });
+      assignedToId = confirmers.map((c) => ({ id: c.userId, n: loads.find((l) => l.assignedToId === c.userId)?._count ?? 0 })).sort((a, b) => a.n - b.n)[0].id;
+    }
+  }
+
   return db.$transaction(async (tx) => {
     const last = await tx.order.findFirst({ where: { tenantId: tenant.id }, orderBy: { number: "desc" }, select: { number: true } });
     const order = await tx.order.create({
@@ -102,7 +112,7 @@ export async function createOrder(tenant: CurrentTenant, form: Record<string, un
         tenantId: tenant.id, number: (last?.number ?? 1000) + 1, customerId: customer.id,
         name: String(data.name ?? ""), phone, wilayaCode: wilaya, commune: data.commune, address: data.address,
         deliveryType, deliveryFee: fee!, subtotal, discount, total: subtotal - discount + fee!, couponCode,
-        customFields: custom as any, ip: meta.ip, source: meta.source ?? "storefront",
+        customFields: custom as any, ip: meta.ip, assignedToId, source: meta.source ?? "storefront",
         items: { create: priced.map((l) => ({ productId: l.product.id, variantId: l.variant?.id, name: l.name, variant: l.variantLabel, unitPrice: l.unitPrice, qty: l.qty })) },
         events: { create: { type: "status", toStatus: "new", note: "created" } },
       },

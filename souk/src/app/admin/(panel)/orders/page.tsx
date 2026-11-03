@@ -9,8 +9,8 @@ import { ShipButton } from "./ShipButton";
 import { bulkOrders } from "../../actions";
 import { SelectAll } from "./SelectAll";
 
-export default async function Orders({ searchParams }: { searchParams: Promise<{ s?: string; q?: string; page?: string }> }) {
-  const { tenant } = await requireAdmin("orders");
+export default async function Orders({ searchParams }: { searchParams: Promise<{ s?: string; q?: string; page?: string; mine?: string }> }) {
+  const { tenant, user, role } = await requireAdmin("orders");
   const { t, lang } = await adminT();
   const sp = await searchParams;
   const page = Math.max(1, Number(sp.page) || 1);
@@ -18,6 +18,7 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
   const where = {
     tenantId: tenant.id,
     ...(sp.s ? { status: sp.s } : {}),
+    ...(role === "confirmer" || sp.mine ? { assignedToId: user.id } : {}),
     ...(q ? { OR: [{ phone: { contains: q.replace(/\s/g, "") } }, { name: { contains: q, mode: "insensitive" as const } }, ...(Number(q) ? [{ number: Number(q) }] : [])] } : {}),
   };
   const [orders, total, counts] = await Promise.all([
@@ -29,7 +30,7 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
   const windowStart = new Date(Date.now() - tenant.config.checkout.duplicateWindowHours * 3600_000);
   const dupPhones = new Set((await db.order.groupBy({ by: ["phone"], where: { tenantId: tenant.id, createdAt: { gte: windowStart } }, _count: true, having: { phone: { _count: { gt: 1 } } } })).map((d) => d.phone));
   const statuses = tenant.config.orderStatuses.map((s) => ({ key: s.key, label: s.label[lang] || s.label.fr, color: s.color }));
-  const qs = (o: Record<string, string | undefined>) => "?" + new URLSearchParams(Object.entries({ s: sp.s, q, ...o }).filter(([, v]) => v) as [string, string][]).toString();
+  const qs = (o: Record<string, string | undefined>) => "?" + new URLSearchParams(Object.entries({ s: sp.s, q, mine: sp.mine, ...o }).filter(([, v]) => v) as [string, string][]).toString();
   return (
     <>
       <div className="row between wrap">
@@ -42,6 +43,7 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
         </div>
       </div>
       <div className="tabs">
+        {role !== "confirmer" && <Link href={qs({ mine: sp.mine ? undefined : "1", page: undefined })} className={sp.mine ? "on" : ""}>👤 {t("Mes commandes")}</Link>}
         <Link href={qs({ s: undefined, page: undefined })} className={!sp.s ? "on" : ""}>{t("Toutes")}</Link>
         {statuses.map((s) => (
           <Link key={s.key} href={qs({ s: s.key, page: undefined })} className={sp.s === s.key ? "on" : ""}>

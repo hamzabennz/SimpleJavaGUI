@@ -1,7 +1,7 @@
 import { adminT } from "@/lib/admin-lang";
 import { db } from "@/lib/db";
 import { requireAdmin, PERMISSIONS } from "@/lib/auth";
-import { removeStaff } from "../../actions";
+import { removeStaff, toggleAutoAssign } from "../../actions";
 import { StaffForm } from "./StaffForm";
 
 export default async function Staff() {
@@ -25,6 +25,10 @@ export default async function Staff() {
           ))}</tbody>
         </table>
       </div>
+      <form action={toggleAutoAssign} className="card row between wrap" style={{ marginBottom: 16 }}>
+        <span>🔄 {t("Répartition automatique des nouvelles commandes entre les confirmateurs")} : <b>{tenant.config.checkout.autoAssign ? t("Activée") : t("Désactivée")}</b></span>
+        <button className="btn sm ghost">{tenant.config.checkout.autoAssign ? t("Désactiver") : t("Activer")}</button>
+      </form>
       <StaffForm />
     </>
   );
