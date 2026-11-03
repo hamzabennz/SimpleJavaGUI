@@ -237,6 +237,9 @@ Wilaya(code, name_ar, name_fr) / Commune(id, wilaya_code, name_ar, name_fr)
 | Upsell / offers | ✅ | Quantity offers and per-product upsell, both priced on the server |
 | Call center | ✅ | Order assignment, round-robin auto-assign, confirmer queues |
 | Secrets | ✅ | AES-256-GCM at rest, masked in UI |
+| Fake-order protection | ✅ | Duplicate flag, blacklist, risk badge from return history, auto-block after N returns, CGNAT-aware rate limits, honeypots |
+| Merchant productivity | ✅ | CSV product import (Excel-friendly), duplicate product, customer CSV export, WhatsApp confirmation template, onboarding checklist, low-stock alert |
+| Media | ✅ | Reusable image field with upload (logo, sections, products) |
 | Staff & roles | ✅ | owner / manager / confirmer / stock |
 | Reports | ✅ | Revenue, COGS, return cost, profit, per product, per wilaya delivery rate |
 | Admin i18n | ✅ | French + Arabic (RTL) |
