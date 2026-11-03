@@ -117,6 +117,7 @@ const ProductInput = z.object({
   images: z.array(z.string().refine((u) => /^https?:\/\//.test(u) || u.startsWith("/uploads/"), "URL invalide")),
   attributes: z.record(z.unknown()),
   freeShipping: z.boolean(),
+  upsell: z.object({ productId: z.string(), price: z.coerce.number().int().min(0), label: z.object({ ar: z.string(), fr: z.string() }) }).nullable().default(null),
   offers: z.array(z.object({ qty: z.coerce.number().int().min(2), price: z.coerce.number().int().min(0), label: z.object({ ar: z.string(), fr: z.string() }) })).default([]),
   options: z.array(z.object({ name: z.object({ ar: z.string(), fr: z.string() }), values: z.array(z.string()) })),
   variants: z.array(z.object({ id: z.string().optional(), optionValues: z.record(z.string()), sku: z.string().nullable(), price: z.coerce.number().int().nullable(), stock: z.coerce.number().int() })),
@@ -128,11 +129,12 @@ export async function saveProduct(input: ProductInputT) {
   const r = ProductInput.safeParse(input);
   if (!r.success) return { error: r.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", ") };
   const d = r.data;
+  if (d.upsell && !(await db.product.findFirst({ where: { id: d.upsell.productId, tenantId: tenant.id } }))) return { error: "Produit upsell invalide" };
   if (d.categoryId && !(await db.category.findFirst({ where: { id: d.categoryId, tenantId: tenant.id } }))) return { error: "Catégorie invalide" };
   const data = {
     slug: d.slug, name: d.name, description: d.description, status: d.status, price: d.price, compareAt: d.compareAt, cost: d.cost,
     categoryId: d.categoryId, trackStock: d.trackStock, stock: d.stock, images: d.images, attributes: d.attributes as any,
-    extra: { freeShipping: d.freeShipping, offers: d.offers }, options: d.options,
+    extra: { freeShipping: d.freeShipping, offers: d.offers, upsell: d.upsell }, options: d.options,
   };
   try {
     let id = d.id;

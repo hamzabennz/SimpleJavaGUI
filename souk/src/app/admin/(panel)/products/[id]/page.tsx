@@ -13,6 +13,7 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
   const p = await db.product.findFirst({ where: { id, tenantId: tenant.id }, include: { variants: true } });
   if (!p) notFound();
   const cats = await db.category.findMany({ where: { tenantId: tenant.id } });
+  const allProducts = (await db.product.findMany({ where: { tenantId: tenant.id }, select: { id: true, name: true, price: true } })).map((x) => ({ id: x.id, name: tr(x.name, "fr"), price: x.price }));
   const L = (v: unknown) => ({ ar: (v as any)?.ar ?? "", fr: (v as any)?.fr ?? "" });
   return (
     <>
@@ -23,10 +24,12 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
       <ProductForm
         categories={cats.map((c) => ({ id: c.id, name: tr(c.name, "fr") }))}
         attributeFields={tenant.config.productAttributes}
+        allProducts={allProducts}
         initial={{
           id: p.id, slug: p.slug, name: L(p.name), description: L(p.description), status: p.status as any, price: p.price, compareAt: p.compareAt, cost: p.cost,
           categoryId: p.categoryId, trackStock: p.trackStock, stock: p.stock, images: p.images, attributes: (p.attributes as any) ?? {},
           freeShipping: !!(p.extra as any)?.freeShipping,
+          upsell: (p.extra as any)?.upsell ? { productId: (p.extra as any).upsell.productId, price: (p.extra as any).upsell.price, label: L((p.extra as any).upsell.label) } : null,
           offers: (((p.extra as any)?.offers ?? []) as any[]).map((o) => ({ qty: o.qty, price: o.price, label: L(o.label) })),
           options: ((p.options as any[]) ?? []).map((o) => ({ name: L(o.name), values: o.values })),
           variants: p.variants.map((v) => ({ id: v.id, optionValues: v.optionValues as Record<string, string>, sku: v.sku, price: v.price, stock: v.stock })),

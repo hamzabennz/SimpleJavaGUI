@@ -32,6 +32,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     return { id: v.id, price: v.price, stock: v.stock, image: v.image, optionValues: Object.fromEntries(options.map((o) => [o.name, ov[o.key]])) };
   });
   const attrs = tenant.config.productAttributes.filter((a) => a.enabled && (product.attributes as any)?.[a.key]);
+  const up = (product.extra as any)?.upsell as { productId: string; price: number; label?: { ar?: string; fr?: string } } | undefined;
+  const upProduct = up?.productId ? await db.product.findFirst({ where: { id: up.productId, tenantId: tenant.id, status: "active" } }) : null;
   const reviews = await db.review.findMany({ where: { tenantId: tenant.id, productId: product.id, approved: true }, orderBy: { createdAt: "desc" }, take: 30 });
   const avg = reviews.length ? reviews.reduce((a, r) => a + r.rating, 0) / reviews.length : 0;
   const related = await db.product.findMany({ where: { tenantId: tenant.id, status: "active", categoryId: product.categoryId, NOT: { id: product.id } }, take: 4 });
@@ -50,6 +52,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         offers={(((product.extra as any)?.offers ?? []) as any[]).map((o) => ({ qty: o.qty, price: o.price, label: tr(o.label, lang) || undefined }))}
         flow={tenant.config.orderFlow}
         whatsapp={tenant.config.store.whatsapp}
+        upsell={upProduct && up ? { productId: upProduct.id, name: tr(upProduct.name, lang), price: up.price, regular: upProduct.price, image: upProduct.images[0], label: tr(up.label, lang) || undefined } : null}
         lang={lang}
         t={t}
         checkout={await checkoutContext(tenant)}

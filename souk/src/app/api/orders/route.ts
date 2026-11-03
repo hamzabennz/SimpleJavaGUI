@@ -7,7 +7,7 @@ import { notifyNewOrder } from "@/lib/notify";
 
 const Body = z.object({
   form: z.record(z.unknown()),
-  lines: z.array(z.object({ productId: z.string(), variantId: z.string().nullish(), qty: z.number().int().min(1).max(99) })).min(1).max(50),
+  lines: z.array(z.object({ productId: z.string(), variantId: z.string().nullish(), qty: z.number().int().min(1).max(99), upsellOf: z.string().nullish() })).min(1).max(50),
   coupon: z.string().max(40).optional(),
 });
 

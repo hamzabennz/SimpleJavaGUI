@@ -17,10 +17,12 @@ type Props = {
   lang: "ar" | "fr";
   t: Record<string, string>;
   whatsapp?: string;
+  upsell?: { productId: string; name: string; price: number; regular: number; image?: string; label?: string } | null;
   checkout: { fields: FieldDef[]; wilayas: { code: number; ar: string; fr: string }[]; rates: Rate[]; deskEnabled: boolean; freeShippingOver: number | null };
 };
 
-export function ProductBuy({ product, options, variants, offers = [], flow, lang, t, checkout, whatsapp }: Props) {
+export function ProductBuy({ product, options, variants, offers = [], flow, lang, t, checkout, whatsapp, upsell }: Props) {
+  const [withUpsell, setWithUpsell] = useState(false);
   const router = useRouter();
   const cart = useCart();
   const [sel, setSel] = useState<Record<string, string>>(() => Object.fromEntries(options.map((o) => [o.name, o.values[0]])));
@@ -105,7 +107,16 @@ export function ProductBuy({ product, options, variants, offers = [], flow, lang
             {flow !== "cart" && (
               <div id="order-form" className="card" style={{ borderColor: "var(--c-primary)", borderWidth: 2 }}>
                 <h3 style={{ marginTop: 0 }}>{t.order_now}</h3>
-                <OrderForm {...checkout} lang={lang} t={t} lines={[line]} allFreeShipping={product.freeShipping} />
+                <OrderForm {...checkout} lang={lang} t={t} allFreeShipping={product.freeShipping}
+                  lines={withUpsell && upsell ? [line, { productId: upsell.productId, qty: 1, name: upsell.name, price: upsell.price, upsellOf: product.id }] : [line]}
+                  extra={upsell && (
+                    <label className="card row" style={{ cursor: "pointer", borderStyle: "dashed", borderColor: "var(--c-accent)", padding: 10 }}>
+                      <input type="checkbox" style={{ width: "auto" }} checked={withUpsell} onChange={(e) => setWithUpsell(e.target.checked)} />
+                      {upsell.image && <img src={upsell.image} alt="" style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 8 }} />}
+                      <span style={{ flex: 1 }}>{upsell.label || (lang === "ar" ? `أضف ${upsell.name}` : `Ajouter ${upsell.name}`)}</span>
+                      <span><b className="price">{dzd(upsell.price, lang)}</b> {upsell.regular > upsell.price && <span className="compare">{dzd(upsell.regular, lang)}</span>}</span>
+                    </label>
+                  )} />
               </div>
             )}
           </>

@@ -7,7 +7,7 @@ import { dzd } from "@/lib/money";
 import { track } from "./Pixels";
 
 export type Rate = { w: number; home: number | null; desk: number | null };
-export type Line = { productId: string; variantId?: string | null; qty: number; name: string; variant?: string | null; price: number };
+export type Line = { productId: string; variantId?: string | null; qty: number; name: string; variant?: string | null; price: number; upsellOf?: string | null };
 
 type Props = {
   fields: FieldDef[];
@@ -21,6 +21,8 @@ type Props = {
   lines: Line[];
   onDone?: () => void;
   submitLabel?: string;
+  /** optional block rendered above the summary (e.g. upsell checkbox) */
+  extra?: React.ReactNode;
 };
 
 export function OrderForm(p: Props) {
@@ -62,7 +64,7 @@ export function OrderForm(p: Props) {
     try {
       const res = await fetch("/api/orders", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ form: vals, lines: p.lines.map(({ productId, variantId, qty }) => ({ productId, variantId, qty })), coupon }),
+        body: JSON.stringify({ form: vals, lines: p.lines.map(({ productId, variantId, qty, upsellOf }) => ({ productId, variantId, qty, upsellOf })), coupon }),
       });
       const j = await res.json();
       if (!res.ok) {
@@ -112,6 +114,7 @@ export function OrderForm(p: Props) {
       <div className="row">
         <input placeholder={p.t.coupon} value={coupon} onChange={(e) => setCoupon(e.target.value.toUpperCase())} style={{ maxWidth: 220 }} />
       </div>
+      {p.extra}
       <div className="summary">
         {p.lines.map((l, i) => (
           <div key={i} className="line"><span>{l.name}{l.variant ? ` (${l.variant})` : ""} × {l.qty}</span><span>{dzd(l.price * l.qty, p.lang)}</span></div>

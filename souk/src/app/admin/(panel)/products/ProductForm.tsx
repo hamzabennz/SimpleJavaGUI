@@ -6,7 +6,7 @@ import { saveProduct, type ProductInputT } from "../../actions";
 import type { FieldDef } from "@/lib/forms";
 import { FieldInput } from "@/components/FieldInput";
 
-type Props = { initial: ProductInputT; categories: { id: string; name: string }[]; attributeFields: FieldDef[] };
+type Props = { initial: ProductInputT; categories: { id: string; name: string }[]; attributeFields: FieldDef[]; allProducts?: { id: string; name: string; price: number }[] };
 
 const slugify = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
@@ -16,7 +16,7 @@ function combos(options: ProductInputT["options"]): Record<string, string>[] {
   return opts.reduce<Record<string, string>[]>((acc, o) => acc.flatMap((a) => o.values.map((v) => ({ ...a, [o.name.fr || o.name.ar]: v }))), opts.length ? [{}] : []);
 }
 
-export function ProductForm({ initial, categories, attributeFields }: Props) {
+export function ProductForm({ initial, categories, attributeFields, allProducts = [] }: Props) {
   const t = useAdminT();
   const router = useRouter();
   const [p, setP] = useState<ProductInputT>(initial);
@@ -134,6 +134,25 @@ export function ProductForm({ initial, categories, attributeFields }: Props) {
             );
           })}
           <button type="button" className="btn sm ghost" style={{ alignSelf: "start" }} onClick={() => set("offers", [...p.offers, { qty: (p.offers.at(-1)?.qty ?? 1) + 1, price: p.price * ((p.offers.at(-1)?.qty ?? 1) + 1), label: { fr: "", ar: "" } }])}>{t("+ Ajouter une offre")}</button>
+        </div>
+        <div className="card stack">
+          <h3 style={{ margin: 0 }}>Upsell</h3>
+          <p className="muted" style={{ margin: 0, fontSize: ".85rem" }}>{t("Proposez un 2e produit à prix spécial dans le formulaire de commande.")}</p>
+          <div className="row wrap">
+            <select value={p.upsell?.productId ?? ""} style={{ maxWidth: 260 }} onChange={(e) => {
+              const o = allProducts.find((x) => x.id === e.target.value);
+              set("upsell", o ? { productId: o.id, price: p.upsell?.price ?? Math.round(o.price * 0.7), label: p.upsell?.label ?? { fr: "", ar: "" } } : null);
+            }}>
+              <option value="">—</option>
+              {allProducts.filter((x) => x.id !== p.id).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+            </select>
+            {p.upsell && <>
+              <input type="number" value={p.upsell.price} onChange={(e) => set("upsell", { ...p.upsell!, price: Number(e.target.value) })} style={{ width: 120 }} />
+              <span>DA</span>
+              <input placeholder="Texte FR (ex: Ajoutez la housse à -30%)" value={p.upsell.label.fr} onChange={(e) => set("upsell", { ...p.upsell!, label: { ...p.upsell!.label, fr: e.target.value } })} style={{ maxWidth: 240 }} />
+              <input placeholder="النص AR" dir="rtl" value={p.upsell.label.ar} onChange={(e) => set("upsell", { ...p.upsell!, label: { ...p.upsell!.label, ar: e.target.value } })} style={{ maxWidth: 200 }} />
+            </>}
+          </div>
         </div>
         {attributeFields.length > 0 && (
           <div className="card stack">

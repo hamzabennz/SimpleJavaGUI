@@ -11,7 +11,7 @@ export function offerUnitPrice(extra: unknown, qty: number): number | null {
   return o ? Math.round(o.price / o.qty) : null;
 }
 
-export type CartLine = { productId: string; variantId?: string | null; qty: number };
+export type CartLine = { productId: string; variantId?: string | null; qty: number; upsellOf?: string | null };
 
 export async function deliveryFee(tenantId: string, wilayaCode: number, type: "home" | "desk") {
   const r = await db.deliveryRate.findUnique({ where: { tenantId_wilayaCode: { tenantId, wilayaCode } } });
@@ -22,7 +22,7 @@ export async function deliveryFee(tenantId: string, wilayaCode: number, type: "h
 
 /** Price lines from the DB (never trust client prices). */
 export async function priceLines(tenantId: string, lines: CartLine[]) {
-  const ids = Array.from(new Set(lines.map((l) => l.productId)));
+  const ids = Array.from(new Set(lines.flatMap((l) => [l.productId, l.upsellOf ?? l.productId])));
   const products = await db.product.findMany({ where: { tenantId, id: { in: ids }, status: "active" }, include: { variants: true } });
   const out = [];
   for (const l of lines) {
@@ -30,14 +30,23 @@ export async function priceLines(tenantId: string, lines: CartLine[]) {
     if (!p) throw new OrderError("product_unavailable");
     const v = l.variantId ? p.variants.find((x) => x.id === l.variantId) : null;
     if (l.variantId && !v) throw new OrderError("product_unavailable");
-    const qty = Math.max(1, Math.min(99, Math.floor(l.qty)));
+    let qty = Math.max(1, Math.min(99, Math.floor(l.qty)));
+    // upsell: special price defined on the parent product, only valid if the parent is in the order
+    let upsellPrice: number | null = null;
+    if (l.upsellOf) {
+      const parent = products.find((x) => x.id === l.upsellOf);
+      const u = (parent?.extra as any)?.upsell;
+      if (!parent || !lines.some((x) => x.productId === parent.id && !x.upsellOf) || u?.productId !== p.id) throw new OrderError("product_unavailable");
+      upsellPrice = Math.max(0, Math.round(Number(u.price)));
+      qty = 1;
+    }
     const stock = v ? v.stock : p.stock;
     if (p.trackStock && stock < qty) throw new OrderError("out_of_stock");
     out.push({
       product: p, variant: v, qty,
       name: (p.name as any)?.ar || (p.name as any)?.fr || p.slug,
       variantLabel: v ? Object.values(v.optionValues as Record<string, string>).join(" / ") : null,
-      unitPrice: offerUnitPrice(p.extra, qty) ?? v?.price ?? p.price,
+      unitPrice: upsellPrice ?? offerUnitPrice(p.extra, qty) ?? v?.price ?? p.price,
     });
   }
   return out;
