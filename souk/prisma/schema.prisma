@@ -1,0 +1,247 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Subscription plan. limits/features are JSON so new ones need no migration.
+model Plan {
+  id       String   @id @default(cuid())
+  name     String   @unique
+  priceDzd Int      @default(0)
+  limits   Json     @default("{}")
+  features Json     @default("{}")
+  tenants  Tenant[]
+}
+
+/// A merchant store. `settings` holds theme, layout, checkout form, features... (see src/lib/settings.ts)
+model Tenant {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  status    String   @default("active")
+  planId    String?
+  plan      Plan?    @relation(fields: [planId], references: [id])
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  domains       Domain[]
+  memberships   Membership[]
+  categories    Category[]
+  products      Product[]
+  customers     Customer[]
+  orders        Order[]
+  deliveryRates DeliveryRate[]
+  coupons       Coupon[]
+  pages         Page[]
+}
+
+model Domain {
+  id       String  @id @default(cuid())
+  tenantId String
+  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  host     String  @unique
+  verified Boolean @default(false)
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  name         String
+  passwordHash String
+  isSuperAdmin Boolean      @default(false)
+  memberships  Membership[]
+  createdAt    DateTime     @default(now())
+}
+
+/// role: owner | manager | confirmer | stock. permissions overrides the role defaults.
+model Membership {
+  id          String   @id @default(cuid())
+  userId      String
+  tenantId    String
+  role        String   @default("owner")
+  permissions String[]
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+}
+
+/// Translatable fields are JSON: { "ar": "...", "fr": "..." }
+model Category {
+  id       String    @id @default(cuid())
+  tenantId String
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name     Json
+  slug     String
+  image    String?
+  position Int       @default(0)
+  products Product[]
+
+  @@unique([tenantId, slug])
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  name        Json
+  slug        String
+  description Json      @default("{}")
+  status      String    @default("draft") // draft | active | archived
+  price       Int // DZD, no decimals
+  compareAt   Int?
+  cost        Int?
+  trackStock  Boolean   @default(false)
+  stock       Int       @default(0)
+  images      String[]
+  /// Values for the tenant-defined product attribute schema
+  attributes  Json      @default("{}")
+  /// [{ name: {ar,fr}, values: ["S","M"] }]
+  options     Json      @default("[]")
+  /// Free-delivery flag & quantity offers etc.
+  extra       Json      @default("{}")
+  seo         Json      @default("{}")
+  variants    Variant[]
+  orderItems  OrderItem[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status])
+}
+
+model Variant {
+  id           String  @id @default(cuid())
+  productId    String
+  product      Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku          String?
+  optionValues Json // { "Size": "M", "Color": "Red" }
+  price        Int?
+  stock        Int     @default(0)
+  image        String?
+}
+
+model Customer {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name        String
+  phone       String
+  email       String?
+  blacklisted Boolean  @default(false)
+  notes       String?
+  orders      Order[]
+  createdAt   DateTime @default(now())
+
+  @@unique([tenantId, phone])
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  tenantId       String
+  tenant         Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  number         Int
+  customerId     String?
+  customer       Customer?   @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  status         String      @default("new")
+  name           String
+  phone          String
+  wilayaCode     Int
+  commune        String?
+  address        String?
+  deliveryType   String      @default("home") // home | desk
+  deliveryFee    Int         @default(0)
+  subtotal       Int
+  discount       Int         @default(0)
+  total          Int
+  couponCode     String?
+  /// Values of tenant-defined custom checkout fields
+  customFields   Json        @default("{}")
+  source         String      @default("storefront")
+  ip             String?
+  assignedToId   String?
+  carrier        String?
+  trackingNumber String?
+  items          OrderItem[]
+  events         OrderEvent[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@unique([tenantId, number])
+  @@index([tenantId, status])
+  @@index([tenantId, phone])
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variantId String?
+  name      String
+  variant   String?
+  unitPrice Int
+  qty       Int
+}
+
+/// Status changes, call attempts, notes (audit trail)
+model OrderEvent {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  type       String // status | note | call
+  fromStatus String?
+  toStatus   String?
+  note       String?
+  userId     String?
+  createdAt  DateTime @default(now())
+}
+
+model DeliveryRate {
+  id         String  @id @default(cuid())
+  tenantId   String
+  tenant     Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  wilayaCode Int
+  homePrice  Int?
+  deskPrice  Int?
+  enabled    Boolean @default(true)
+
+  @@unique([tenantId, wilayaCode])
+}
+
+model Coupon {
+  id        String    @id @default(cuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  code      String
+  type      String // percent | fixed
+  value     Int
+  minTotal  Int       @default(0)
+  maxUses   Int?
+  used      Int       @default(0)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  active    Boolean   @default(true)
+
+  @@unique([tenantId, code])
+}
+
+/// Section-based pages. sections = [{ id, type, props }]
+model Page {
+  id       String  @id @default(cuid())
+  tenantId String
+  tenant   Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  slug     String
+  title    Json
+  sections Json    @default("[]")
+  isHome   Boolean @default(false)
+
+  @@unique([tenantId, slug])
+}
