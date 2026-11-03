@@ -21,13 +21,19 @@ function verify(token: string): { uid: string; exp: number } | null {
   return p.exp > Date.now() ? p : null;
 }
 
+/** Share the session across <slug>.ROOT_DOMAIN (not for custom domains or localhost). */
+function cookieDomain() {
+  const root = (process.env.ROOT_DOMAIN ?? "").split(":")[0];
+  return root && root !== "localhost" ? "." + root : undefined;
+}
+
 export async function createSession(uid: string) {
   (await cookies()).set(COOKIE, sign({ uid, exp: Date.now() + 7 * 864e5 }), {
-    httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 7 * 86400,
+    domain: cookieDomain(), httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 7 * 86400,
   });
 }
 export async function destroySession() {
-  (await cookies()).delete(COOKIE);
+  (await cookies()).set(COOKIE, "", { domain: cookieDomain(), path: "/", maxAge: 0 });
 }
 
 export const PERMISSIONS = {

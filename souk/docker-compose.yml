@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: souk
+    volumes: [pgdata:/var/lib/postgresql/data]
+  app:
+    build: .
+    depends_on: [db]
+    ports: ["3000:3000"]
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/souk
+      SESSION_SECRET: change-me-please-use-a-long-random-string
+      ROOT_DOMAIN: localhost:3000
+      DEFAULT_TENANT: demo
+      UPLOAD_DIR: /data/uploads
+    volumes: [uploads:/data/uploads]
+volumes:
+  pgdata:
+  uploads:

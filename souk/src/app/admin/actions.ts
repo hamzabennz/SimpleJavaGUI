@@ -9,6 +9,7 @@ import { getTenant } from "@/lib/tenant";
 import { mergeSettings } from "@/lib/settings";
 import { carriers } from "@/lib/carriers";
 import { wilayas } from "@/lib/algeria";
+import { provisionTenant, storeUrl } from "@/lib/provision";
 
 // ---------- auth ----------
 export async function login(_: unknown, fd: FormData) {
@@ -265,24 +266,11 @@ async function requireSuperAdmin() {
 }
 export async function createTenant(_: unknown, fd: FormData) {
   await requireSuperAdmin();
-  const slug = String(fd.get("slug") ?? "").toLowerCase().trim();
-  const name = String(fd.get("name") ?? "").trim();
-  const email = String(fd.get("email") ?? "").toLowerCase().trim();
-  const pw = String(fd.get("password") ?? "");
-  if (!/^[a-z0-9-]{3,30}$/.test(slug)) return { error: "Slug invalide (a-z, 0-9, -)" };
-  if (!name || !email || pw.length < 8) return { error: "Nom, email et mot de passe (8+) requis" };
-  if (await db.tenant.findUnique({ where: { slug } })) return { error: "Slug déjà utilisé" };
-  const planId = String(fd.get("planId") || "") || null;
-  const tenant = await db.tenant.create({ data: { slug, name, planId, settings: {} } });
-  const user = await db.user.upsert({ where: { email }, create: { email, name, passwordHash: await bcrypt.hash(pw, 10) }, update: {} });
-  await db.membership.create({ data: { userId: user.id, tenantId: tenant.id, role: "owner" } });
-  // sensible defaults: all wilayas enabled with a flat price the merchant will adjust
-  await db.deliveryRate.createMany({ data: Array.from({ length: 58 }, (_, i) => ({ tenantId: tenant.id, wilayaCode: i + 1, homePrice: 700, deskPrice: 450 })) });
-  await db.page.create({ data: { tenantId: tenant.id, slug: "home", isHome: true, title: { ar: "الرئيسية", fr: "Accueil" }, sections: [
-    { id: "h", type: "hero", enabled: true, props: { title_ar: name, title_fr: name, cta_ar: "تسوق الآن", cta_fr: "Voir les produits", cta_link: "/products", align: "center" } },
-    { id: "t", type: "trust_badges", enabled: true, props: {} },
-    { id: "g", type: "product_grid", enabled: true, props: { title_ar: "منتجاتنا", title_fr: "Nos produits", limit: 12 } },
-  ] } });
+  const r = await provisionTenant({
+    slug: String(fd.get("slug") ?? ""), name: String(fd.get("name") ?? ""), email: String(fd.get("email") ?? ""),
+    password: String(fd.get("password") ?? ""), planId: String(fd.get("planId") || "") || null,
+  });
+  if ("error" in r) return { error: r.error };
   revalidatePath("/platform");
   return { ok: true };
 }
@@ -295,4 +283,18 @@ export async function setTenantPlan(id: string, fd: FormData) {
   await requireSuperAdmin();
   await db.tenant.update({ where: { id }, data: { planId: String(fd.get("planId") || "") || null } });
   revalidatePath("/platform");
+}
+
+// ---------- public self-serve signup ----------
+const signupHits = new Map<string, number>();
+export async function signup(_: unknown, fd: FormData) {
+  if (String(fd.get("website") ?? "")) return { error: "spam" }; // honeypot
+  const email = String(fd.get("email") ?? "").toLowerCase();
+  const n = (signupHits.get(email) ?? 0) + 1; signupHits.set(email, n);
+  if (n > 5) return { error: "Trop de tentatives" };
+  const r = await provisionTenant({ slug: String(fd.get("slug") ?? ""), name: String(fd.get("name") ?? ""), email, password: String(fd.get("password") ?? "") });
+  if ("error" in r) return { error: r.error };
+  const user = await db.user.findUnique({ where: { email } });
+  if (user) await createSession(user.id);
+  return { ok: true, adminUrl: storeUrl(r.tenant.slug, "/admin"), storeUrl: storeUrl(r.tenant.slug) };
 }
