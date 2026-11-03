@@ -1,3 +1,4 @@
+import { adminT } from "@/lib/admin-lang";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
@@ -7,6 +8,7 @@ import { deleteProduct } from "../../../actions";
 
 export default async function EditProduct({ params }: { params: Promise<{ id: string }> }) {
   const { tenant } = await requireAdmin("products");
+  const { t } = await adminT();
   const { id } = await params;
   const p = await db.product.findFirst({ where: { id, tenantId: tenant.id }, include: { variants: true } });
   if (!p) notFound();
@@ -16,7 +18,7 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
     <>
       <div className="row between wrap">
         <h1>{tr(p.name, "fr")}</h1>
-        <form action={deleteProduct.bind(null, p.id)}><button className="btn sm danger">Supprimer</button></form>
+        <form action={deleteProduct.bind(null, p.id)}><button className="btn sm danger">{t("Supprimer")}</button></form>
       </div>
       <ProductForm
         categories={cats.map((c) => ({ id: c.id, name: tr(c.name, "fr") }))}

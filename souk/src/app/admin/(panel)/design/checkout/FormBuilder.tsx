@@ -1,4 +1,5 @@
 "use client";
+import { useAdminT } from "@/components/AdminLang";
 import { useState, useTransition } from "react";
 import { saveSettings } from "../../../actions";
 import type { FieldDef } from "@/lib/forms";
@@ -9,6 +10,7 @@ const TYPES: [FieldDef["type"], string][] = [["text", "Texte"], ["textarea", "Te
 
 /** Generic schema editor: used for the checkout form and the product attributes. */
 export function FormBuilder({ initial, target, extra }: { initial: FieldDef[]; target: "checkout" | "productAttributes"; extra?: { deskEnabled: boolean; freeShippingOver: number | null } }) {
+  const t = useAdminT();
   const [fields, setFields] = useState(initial);
   const [opts, setOpts] = useState(extra);
   const [pending, start] = useTransition();
@@ -37,16 +39,16 @@ export function FormBuilder({ initial, target, extra }: { initial: FieldDef[]; t
               </div>
               <code style={{ flex: 1 }}>{f.key}</code>
               <span className="muted" style={{ fontSize: ".8rem" }}>{TYPES.find(([t]) => t === f.type)?.[1] ?? f.type}</span>
-              <label className="row" style={{ fontWeight: 500, fontSize: ".85rem" }}><input type="checkbox" style={{ width: "auto" }} checked={f.enabled} disabled={target === "checkout" && ["phone", "wilaya"].includes(f.key)} onChange={(e) => upd(i, { enabled: e.target.checked })} /> Actif</label>
-              <label className="row" style={{ fontWeight: 500, fontSize: ".85rem" }}><input type="checkbox" style={{ width: "auto" }} checked={f.required} disabled={target === "checkout" && ["phone", "wilaya"].includes(f.key)} onChange={(e) => upd(i, { required: e.target.checked })} /> Obligatoire</label>
-              <select value={f.width} style={{ width: "auto" }} onChange={(e) => upd(i, { width: e.target.value as any })}><option value="full">Pleine largeur</option><option value="half">Demi-largeur</option></select>
+              <label className="row" style={{ fontWeight: 500, fontSize: ".85rem" }}><input type="checkbox" style={{ width: "auto" }} checked={f.enabled} disabled={target === "checkout" && ["phone", "wilaya"].includes(f.key)} onChange={(e) => upd(i, { enabled: e.target.checked })} /> {t("Actif")}</label>
+              <label className="row" style={{ fontWeight: 500, fontSize: ".85rem" }}><input type="checkbox" style={{ width: "auto" }} checked={f.required} disabled={target === "checkout" && ["phone", "wilaya"].includes(f.key)} onChange={(e) => upd(i, { required: e.target.checked })} /> {t("Obligatoire")}</label>
+              <select value={f.width} style={{ width: "auto" }} onChange={(e) => upd(i, { width: e.target.value as any })}><option value="full">{t("Pleine largeur")}</option><option value="half">{t("Demi-largeur")}</option></select>
               {!(target === "checkout" && BUILTIN.includes(f.key)) && <button type="button" className="btn sm ghost" onClick={() => setFields(fields.filter((_, j) => j !== i))}>🗑</button>}
             </div>
             <div className="form-grid">
-              <div className="field half"><label>Libellé FR</label><input value={f.label.fr} onChange={(e) => upd(i, { label: { ...f.label, fr: e.target.value } })} /></div>
-              <div className="field half"><label>التسمية AR</label><input dir="rtl" value={f.label.ar} onChange={(e) => upd(i, { label: { ...f.label, ar: e.target.value } })} /></div>
+              <div className="field half"><label>{t("Libellé FR")}</label><input value={f.label.fr} onChange={(e) => upd(i, { label: { ...f.label, fr: e.target.value } })} /></div>
+              <div className="field half"><label>{t("التسمية AR")}</label><input dir="rtl" value={f.label.ar} onChange={(e) => upd(i, { label: { ...f.label, ar: e.target.value } })} /></div>
               {(f.type === "select" || f.type === "radio") && (
-                <div className="field full"><label>Options (une par ligne : valeur|libellé FR|libellé AR)</label>
+                <div className="field full"><label>{t("Options (une par ligne : valeur|libellé FR|libellé AR)")}</label>
                   <textarea rows={3} defaultValue={(f.options ?? []).map((o) => `${o.value}|${o.label.fr}|${o.label.ar}`).join("\n")}
                     onBlur={(e) => upd(i, { options: e.target.value.split("\n").filter(Boolean).map((l) => { const [value, fr, ar] = l.split("|"); return { value: value.trim(), label: { fr: (fr ?? value).trim(), ar: (ar ?? fr ?? value).trim() } }; }) })} />
                 </div>
@@ -62,22 +64,22 @@ export function FormBuilder({ initial, target, extra }: { initial: FieldDef[]; t
           setFields([...fields, { key, type: fd.get("type") as any, label: { fr: String(fd.get("fr") || key), ar: String(fd.get("fr") || key) }, required: false, enabled: true, width: "full", options: [] }]);
           e.currentTarget.reset();
         }}>
-          <input name="key" placeholder="clé (ex: taille_pied)" required style={{ maxWidth: 180 }} />
-          <input name="fr" placeholder="Libellé" style={{ maxWidth: 180 }} />
+          <input name="key" placeholder={t("clé (ex: taille_pied)")} required style={{ maxWidth: 180 }} />
+          <input name="fr" placeholder={t("Libellé")} style={{ maxWidth: 180 }} />
           <select name="type" style={{ maxWidth: 160 }}>{TYPES.map(([t, l]) => <option key={t} value={t}>{l}</option>)}</select>
-          <button className="btn sm">+ Ajouter un champ</button>
+          <button className="btn sm">{t("+ Ajouter un champ")}</button>
         </form>
         {opts && (
           <div className="card stack">
-            <label className="row" style={{ fontWeight: 500 }}><input type="checkbox" style={{ width: "auto" }} checked={opts.deskEnabled} onChange={(e) => setOpts({ ...opts, deskEnabled: e.target.checked })} /> Proposer le Stop desk</label>
+            <label className="row" style={{ fontWeight: 500 }}><input type="checkbox" style={{ width: "auto" }} checked={opts.deskEnabled} onChange={(e) => setOpts({ ...opts, deskEnabled: e.target.checked })} /> {t("Proposer le Stop desk")}</label>
             <div className="field"><label>Livraison gratuite à partir de (DA, vide = jamais)</label>
               <input type="number" value={opts.freeShippingOver ?? ""} onChange={(e) => setOpts({ ...opts, freeShippingOver: e.target.value === "" ? null : Number(e.target.value) })} style={{ maxWidth: 200 }} /></div>
           </div>
         )}
-        <button className="btn lg" onClick={save} disabled={pending}>{pending ? "..." : saved ? "Enregistré ✓" : "Enregistrer"}</button>
+        <button className="btn lg" onClick={save} disabled={pending}>{pending ? "..." : saved ? t("Enregistré ✓") : t("Enregistrer")}</button>
       </div>
       <div className="card stack" style={{ position: "sticky", top: 16, alignSelf: "start" }}>
-        <div className="row between"><b>Aperçu</b>
+        <div className="row between"><b>{t("Aperçu")}</b>
           <div className="tabs" style={{ margin: 0 }}>{(["ar", "fr"] as const).map((l) => <a key={l} className={lang === l ? "on" : ""} onClick={() => setLang(l)} style={{ cursor: "pointer" }}>{l.toUpperCase()}</a>)}</div>
         </div>
         <div className="form-grid" dir={lang === "ar" ? "rtl" : "ltr"}>

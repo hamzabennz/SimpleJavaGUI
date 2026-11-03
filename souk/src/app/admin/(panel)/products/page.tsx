@@ -1,3 +1,4 @@
+import { adminT } from "@/lib/admin-lang";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
@@ -7,6 +8,7 @@ import { saveCategory } from "../../actions";
 
 export default async function Products({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { tenant } = await requireAdmin("products");
+  const { t } = await adminT();
   const q = (await searchParams).q?.trim();
   const [products, cats] = await Promise.all([
     db.product.findMany({ where: { tenantId: tenant.id, ...(q ? { slug: { contains: q, mode: "insensitive" } } : {}) }, include: { variants: true, category: true, _count: { select: { orderItems: true } } }, orderBy: { createdAt: "desc" } }),
@@ -16,13 +18,13 @@ export default async function Products({ searchParams }: { searchParams: Promise
   return (
     <>
       <div className="row between wrap">
-        <h1>Produits</h1>
-        <Link href="/admin/products/new" className="btn">+ Nouveau produit</Link>
+        <h1>{t("Produits")}</h1>
+        <Link href="/admin/products/new" className="btn">{t("+ Nouveau produit")}</Link>
       </div>
-      <form className="row" style={{ marginBottom: 12 }}><input name="q" defaultValue={q} placeholder="Rechercher (slug)" style={{ maxWidth: 300 }} /><button className="btn sm">OK</button></form>
+      <form className="row" style={{ marginBottom: 12 }}><input name="q" defaultValue={q} placeholder={t("Rechercher (slug)")} style={{ maxWidth: 300 }} /><button className="btn sm">{t("OK")}</button></form>
       <div className="card table-wrap" style={{ padding: 0 }}>
         <table className="tbl">
-          <thead><tr><th></th><th>Produit</th><th>Catégorie</th><th>Prix</th><th>Stock</th><th>Ventes</th><th>Statut</th></tr></thead>
+          <thead><tr><th></th><th>{t("Produit")}</th><th>{t("Catégorie")}</th><th>{t("Prix")}</th><th>{t("Stock")}</th><th>{t("Ventes")}</th><th>{t("Statut")}</th></tr></thead>
           <tbody>{products.map((p) => {
             const stock = p.trackStock ? (p.variants.length ? p.variants.reduce((s, v) => s + v.stock, 0) : p.stock) : null;
             return (
@@ -39,12 +41,12 @@ export default async function Products({ searchParams }: { searchParams: Promise
           })}</tbody>
         </table>
       </div>
-      <h3>Catégories</h3>
+      <h3>{t("Catégories")}</h3>
       <div className="row wrap" style={{ marginBottom: 12 }}>{cats.map((c) => <span key={c.id} className="btn ghost sm">{tr(c.name, "fr")} · {tr(c.name, "ar")}</span>)}</div>
       <form action={saveCategory} className="row wrap card">
-        <input name="fr" placeholder="Nom (FR)" style={{ maxWidth: 200 }} />
-        <input name="ar" placeholder="الاسم (AR)" dir="rtl" style={{ maxWidth: 200 }} />
-        <button className="btn sm">+ Ajouter une catégorie</button>
+        <input name="fr" placeholder={t("Nom (FR)")} style={{ maxWidth: 200 }} />
+        <input name="ar" placeholder={t("الاسم (AR)")} dir="rtl" style={{ maxWidth: 200 }} />
+        <button className="btn sm">{t("+ Ajouter une catégorie")}</button>
       </form>
     </>
   );

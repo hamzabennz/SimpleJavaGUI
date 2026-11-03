@@ -1,4 +1,5 @@
 "use client";
+import { useAdminT } from "@/components/AdminLang";
 import { useState, useTransition } from "react";
 import { saveHomeSections } from "../../../actions";
 import { FieldInput } from "@/components/FieldInput";
@@ -8,6 +9,7 @@ type Section = { id: string; type: string; enabled: boolean; props: Record<strin
 type Registry = Record<string, { label: { ar: string; fr: string }; fields: FieldDef[]; defaults: Record<string, unknown> }>;
 
 export function PageBuilder({ initial, registry }: { initial: Section[]; registry: Registry }) {
+  const t = useAdminT();
   const [sections, setSections] = useState(initial);
   const [open, setOpen] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -29,7 +31,7 @@ export function PageBuilder({ initial, registry }: { initial: Section[]; registr
                   <button type="button" className="btn sm ghost" onClick={() => move(i, 1)}>↓</button>
                 </div>
                 <b className="grow" style={{ cursor: "pointer" }} onClick={() => setOpen(open === s.id ? null : s.id)}>{def?.label.fr ?? s.type}</b>
-                <input type="checkbox" title="Visible" style={{ width: "auto" }} checked={s.enabled} onChange={(e) => update(sections.map((x) => (x.id === s.id ? { ...x, enabled: e.target.checked } : x)))} />
+                <input type="checkbox" title={t("Visible")} style={{ width: "auto" }} checked={s.enabled} onChange={(e) => update(sections.map((x) => (x.id === s.id ? { ...x, enabled: e.target.checked } : x)))} />
                 {def?.fields.length ? <button type="button" className="btn sm ghost" onClick={() => setOpen(open === s.id ? null : s.id)}>✎</button> : null}
                 <button type="button" className="btn sm ghost" onClick={() => update(sections.filter((x) => x.id !== s.id))}>🗑</button>
               </div>
@@ -45,13 +47,13 @@ export function PageBuilder({ initial, registry }: { initial: Section[]; registr
           );
         })}
         <div className="card row wrap">
-          <span className="muted">Ajouter :</span>
+          <span className="muted">{t("Ajouter :")}</span>
           {Object.entries(registry).map(([k, d]) => (
             <button key={k} type="button" className="btn sm ghost" onClick={() => { const id = Math.random().toString(36).slice(2, 8); update([...sections, { id, type: k, enabled: true, props: { ...d.defaults } }]); setOpen(id); }}>+ {d.label.fr}</button>
           ))}
         </div>
         <button className="btn lg" disabled={pending} onClick={() => start(async () => { await saveHomeSections(sections); setSaved(true); setPreviewKey((k) => k + 1); })}>
-          {pending ? "..." : saved ? "Publié ✓" : "Enregistrer & publier"}
+          {pending ? "..." : saved ? t("Publié ✓") : t("Enregistrer & publier")}
         </button>
       </div>
       <div className="card" style={{ padding: 0, overflow: "hidden", position: "sticky", top: 16, height: "calc(100vh - 48px)" }}>

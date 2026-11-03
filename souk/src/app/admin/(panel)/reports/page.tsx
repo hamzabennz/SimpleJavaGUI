@@ -1,3 +1,4 @@
+import { adminT } from "@/lib/admin-lang";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
@@ -7,6 +8,7 @@ import { wilayaName } from "@/lib/algeria";
 /** Profit = delivered revenue − product cost − (delivery fees paid on returns). */
 export default async function Reports({ searchParams }: { searchParams: Promise<{ d?: string }> }) {
   const { tenant } = await requireAdmin("reports");
+  const { t, lang } = await adminT();
   const days = Number((await searchParams).d) || 30;
   const since = new Date(Date.now() - days * 864e5);
   const orders = await db.order.findMany({
@@ -46,36 +48,36 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
   return (
     <>
       <div className="row between wrap">
-        <h1>Rapports</h1>
-        <div className="tabs">{[7, 30, 90, 365].map((d) => <Link key={d} href={`?d=${d}`} className={d === days ? "on" : ""}>{d} jours</Link>)}</div>
+        <h1>{t("Rapports")}</h1>
+        <div className="tabs">{[7, 30, 90, 365].map((d) => <Link key={d} href={`?d=${d}`} className={d === days ? "on" : ""}>{d} {t("jours")}</Link>)}</div>
       </div>
       <div className="kpis">
-        {[["CA livré (hors livraison)", dzd(revenue)], ["Coût des produits", dzd(cogs)], ["Frais de retour", dzd(returnCost)], ["Bénéfice estimé", dzd(profit)], ["Marge", revenue ? `${Math.round((profit / revenue) * 100)}%` : "—"]].map(([l, v]) => (
-          <div key={l} className="card kpi"><div className="l">{l}</div><div className="v">{v}</div></div>
+        {[["CA livré (hors livraison)", dzd(revenue, lang)], ["Coût des produits", dzd(cogs, lang)], ["Frais de retour", dzd(returnCost, lang)], ["Bénéfice estimé", dzd(profit, lang)], ["Marge", revenue ? `${Math.round((profit / revenue) * 100)}%` : "—"]].map(([l, v]) => (
+          <div key={l} className="card kpi"><div className="l">{t(l)}</div><div className="v">{v}</div></div>
         ))}
       </div>
       <div className="card" style={{ marginTop: 16 }}>
-        <h3 style={{ marginTop: 0 }}>Commandes par jour</h3>
+        <h3 style={{ marginTop: 0 }}>{t("Commandes par jour")}</h3>
         <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 140 }}>
           {series.map(([d, v]) => (
-            <div key={d} title={`${d}: ${v.orders} commandes · ${dzd(v.revenue)}`} style={{ flex: 1, height: `${(v.orders / maxOrders) * 100}%`, minHeight: v.orders ? 3 : 0, background: "var(--c-primary)", borderRadius: "3px 3px 0 0" }} />
+            <div key={d} title={`${d}: ${v.orders} commandes · ${dzd(v.revenue, lang)}`} style={{ flex: 1, height: `${(v.orders / maxOrders) * 100}%`, minHeight: v.orders ? 3 : 0, background: "var(--c-primary)", borderRadius: "3px 3px 0 0" }} />
           ))}
         </div>
         <div className="row between muted" style={{ fontSize: ".75rem" }}><span>{series[0]?.[0]}</span><span>{series.at(-1)?.[0]}</span></div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(380px,1fr))", gap: 16, marginTop: 16 }}>
         <div className="card table-wrap">
-          <h3 style={{ marginTop: 0 }}>Par produit (livrées)</h3>
-          <table className="tbl"><thead><tr><th>Produit</th><th>Qté</th><th>CA</th><th>Marge</th></tr></thead>
-            <tbody>{[...prod.entries()].sort((a, b) => b[1].revenue - a[1].revenue).map(([n, r]) => <tr key={n}><td>{n}</td><td>{r.qty}</td><td>{dzd(r.revenue)}</td><td>{dzd(r.revenue - r.cost)}</td></tr>)}</tbody>
+          <h3 style={{ marginTop: 0 }}>{t("Par produit (livrées)")}</h3>
+          <table className="tbl"><thead><tr><th>{t("Produit")}</th><th>{t("Qté")}</th><th>{t("CA")}</th><th>{t("Marge")}</th></tr></thead>
+            <tbody>{[...prod.entries()].sort((a, b) => b[1].revenue - a[1].revenue).map(([n, r]) => <tr key={n}><td>{n}</td><td>{r.qty}</td><td>{dzd(r.revenue, lang)}</td><td>{dzd(r.revenue - r.cost, lang)}</td></tr>)}</tbody>
           </table>
         </div>
         <div className="card table-wrap">
-          <h3 style={{ marginTop: 0 }}>Par wilaya</h3>
-          <table className="tbl"><thead><tr><th>Wilaya</th><th>Cmd</th><th>Livrées</th><th>Retours</th><th>Taux</th></tr></thead>
+          <h3 style={{ marginTop: 0 }}>{t("Par wilaya")}</h3>
+          <table className="tbl"><thead><tr><th>{t("Wilaya")}</th><th>{t("Cmd")}</th><th>{t("Livrées")}</th><th>{t("Retours")}</th><th>{t("Taux")}</th></tr></thead>
             <tbody>{[...wil.entries()].sort((a, b) => b[1].total - a[1].total).map(([w, r]) => {
               const rate = r.delivered + r.returned ? Math.round((r.delivered / (r.delivered + r.returned)) * 100) : null;
-              return <tr key={w}><td>{wilayaName(w)}</td><td>{r.total}</td><td>{r.delivered}</td><td>{r.returned}</td><td>{rate === null ? "—" : <b style={{ color: rate >= 70 ? "var(--c-success)" : "var(--c-danger)" }}>{rate}%</b>}</td></tr>;
+              return <tr key={w}><td>{wilayaName(w, lang)}</td><td>{r.total}</td><td>{r.delivered}</td><td>{r.returned}</td><td>{rate === null ? "—" : <b style={{ color: rate >= 70 ? "var(--c-success)" : "var(--c-danger)" }}>{rate}%</b>}</td></tr>;
             })}</tbody>
           </table>
         </div>

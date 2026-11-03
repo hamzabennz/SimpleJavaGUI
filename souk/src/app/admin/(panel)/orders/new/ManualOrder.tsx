@@ -1,4 +1,5 @@
 "use client";
+import { useAdminT } from "@/components/AdminLang";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createManualOrder } from "../../../actions";
@@ -10,6 +11,7 @@ type Product = { id: string; name: string; price: number; variants: { id: string
 type Props = { products: Product[]; fields: FieldDef[]; wilayas: { code: number; fr: string }[]; rates: { w: number; home: number | null; desk: number | null }[] };
 
 export function ManualOrder({ products, fields, wilayas, rates }: Props) {
+  const t = useAdminT();
   const router = useRouter();
   const [vals, setVals] = useState<Record<string, string>>({ delivery_type: "home" });
   const [lines, setLines] = useState<{ productId: string; variantId: string | null; qty: number }[]>([]);
@@ -30,16 +32,16 @@ export function ManualOrder({ products, fields, wilayas, rates }: Props) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(340px,1fr))", gap: 16 }}>
       <div className="card stack">
-        <h3 style={{ margin: 0 }}>Client</h3>
-        <div className="field"><label>Source</label>
+        <h3 style={{ margin: 0 }}>{t("Client")}</h3>
+        <div className="field"><label>{t("Source")}</label>
           <select value={source} onChange={(e) => setSource(e.target.value)}>
-            <option value="phone">Téléphone</option><option value="whatsapp">WhatsApp</option><option value="messenger">Messenger</option><option value="instagram">Instagram</option><option value="store">Magasin</option>
+            <option value="phone">{t("Téléphone")}</option><option value="whatsapp">{t("WhatsApp")}</option><option value="messenger">{t("Messenger")}</option><option value="instagram">{t("Instagram")}</option><option value="store">{t("Magasin")}</option>
           </select>
         </div>
         <div className="form-grid">
           {fields.filter((f) => f.enabled).map((f) => f.type === "delivery_type" ? (
-            <div key={f.key} className="field full"><label>Livraison</label>
-              <select value={vals.delivery_type} onChange={(e) => setVals({ ...vals, delivery_type: e.target.value })}><option value="home">Domicile</option><option value="desk">Stop desk</option></select>
+            <div key={f.key} className="field full"><label>{t("Livraison")}</label>
+              <select value={vals.delivery_type} onChange={(e) => setVals({ ...vals, delivery_type: e.target.value })}><option value="home">{t("Domicile")}</option><option value="desk">{t("Stop desk")}</option></select>
             </div>
           ) : (
             <FieldInput key={f.key} field={f} lang="fr" value={vals[f.key]} error={errors[f.key]} chooseLabel="—"
@@ -49,7 +51,7 @@ export function ManualOrder({ products, fields, wilayas, rates }: Props) {
         </div>
       </div>
       <div className="card stack">
-        <h3 style={{ margin: 0 }}>Produits</h3>
+        <h3 style={{ margin: 0 }}>{t("Produits")}</h3>
         {lines.map((l, i) => {
           const p = products.find((x) => x.id === l.productId)!;
           return (
@@ -67,15 +69,15 @@ export function ManualOrder({ products, fields, wilayas, rates }: Props) {
           );
         })}
         <select value="" onChange={(e) => { const p = products.find((x) => x.id === e.target.value); if (p) setLines([...lines, { productId: p.id, variantId: p.variants[0]?.id ?? null, qty: 1 }]); }}>
-          <option value="">+ Ajouter un produit…</option>
+          <option value="">{t("+ Ajouter un produit…")}</option>
           {products.map((p) => <option key={p.id} value={p.id}>{p.name} — {dzd(p.price)}</option>)}
         </select>
         <div className="field"><label>Frais de livraison (vide = tarif automatique{autoFee !== null ? ` : ${dzd(autoFee)}` : ""})</label>
           <input type="number" value={fee} onChange={(e) => setFee(e.target.value)} style={{ maxWidth: 180 }} /></div>
         <div className="summary">
-          <div className="line"><span>Sous-total</span><span>{dzd(subtotal)}</span></div>
-          <div className="line"><span>Livraison</span><span>{dzd(effFee)}</span></div>
-          <div className="line total"><span>Total</span><span>{dzd(subtotal + effFee)}</span></div>
+          <div className="line"><span>{t("Sous-total")}</span><span>{dzd(subtotal)}</span></div>
+          <div className="line"><span>{t("Livraison")}</span><span>{dzd(effFee)}</span></div>
+          <div className="line total"><span>{t("Total")}</span><span>{dzd(subtotal + effFee)}</span></div>
         </div>
         {msg && <div className="alert">{msg}</div>}
         <button className="btn lg" disabled={pending || !lines.length} onClick={() => start(async () => {
@@ -83,7 +85,7 @@ export function ManualOrder({ products, fields, wilayas, rates }: Props) {
           const r = await createManualOrder({ form: vals, lines, source, deliveryFee: fee === "" ? null : Number(fee) });
           if ("error" in r && r.error) { setErrors((r.fieldErrors as Record<string, string>) ?? {}); setMsg(r.error === "validation" ? "Vérifiez les champs" : r.error); return; }
           if ("id" in r) router.push(`/admin/orders/${r.id}`);
-        })}>{pending ? "..." : "Créer la commande"}</button>
+        })}>{pending ? "..." : t("Créer la commande")}</button>
       </div>
     </div>
   );

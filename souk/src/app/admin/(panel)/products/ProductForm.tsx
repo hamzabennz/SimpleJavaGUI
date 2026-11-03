@@ -1,4 +1,5 @@
 "use client";
+import { useAdminT } from "@/components/AdminLang";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveProduct, type ProductInputT } from "../../actions";
@@ -16,6 +17,7 @@ function combos(options: ProductInputT["options"]): Record<string, string>[] {
 }
 
 export function ProductForm({ initial, categories, attributeFields }: Props) {
+  const t = useAdminT();
   const router = useRouter();
   const [p, setP] = useState<ProductInputT>(initial);
   const [err, setErr] = useState("");
@@ -48,14 +50,14 @@ export function ProductForm({ initial, categories, attributeFields }: Props) {
       <div className="stack">
         <div className="card stack">
           <div className="form-grid">
-            <div className="field half"><label>Nom (FR)</label><input value={p.name.fr} onChange={(e) => { set("name", { ...p.name, fr: e.target.value }); if (!initial.id) set("slug", slugify(e.target.value)); }} /></div>
-            <div className="field half"><label>الاسم (AR)</label><input dir="rtl" value={p.name.ar} onChange={(e) => set("name", { ...p.name, ar: e.target.value })} /></div>
-            <div className="field half"><label>Description (FR)</label><textarea rows={5} value={p.description.fr} onChange={(e) => set("description", { ...p.description, fr: e.target.value })} /></div>
-            <div className="field half"><label>الوصف (AR)</label><textarea dir="rtl" rows={5} value={p.description.ar} onChange={(e) => set("description", { ...p.description, ar: e.target.value })} /></div>
+            <div className="field half"><label>{t("Nom (FR)")}</label><input value={p.name.fr} onChange={(e) => { set("name", { ...p.name, fr: e.target.value }); if (!initial.id) set("slug", slugify(e.target.value)); }} /></div>
+            <div className="field half"><label>{t("الاسم (AR)")}</label><input dir="rtl" value={p.name.ar} onChange={(e) => set("name", { ...p.name, ar: e.target.value })} /></div>
+            <div className="field half"><label>{t("Description (FR)")}</label><textarea rows={5} value={p.description.fr} onChange={(e) => set("description", { ...p.description, fr: e.target.value })} /></div>
+            <div className="field half"><label>{t("الوصف (AR)")}</label><textarea dir="rtl" rows={5} value={p.description.ar} onChange={(e) => set("description", { ...p.description, ar: e.target.value })} /></div>
           </div>
         </div>
         <div className="card stack">
-          <h3 style={{ margin: 0 }}>Images</h3>
+          <h3 style={{ margin: 0 }}>{t("Images")}</h3>
           <div className="row wrap">
             {p.images.map((src, i) => (
               <div key={i} style={{ position: "relative" }}>
@@ -69,7 +71,7 @@ export function ProductForm({ initial, categories, attributeFields }: Props) {
           </div>
           <form className="row" onSubmit={(e) => { e.preventDefault(); const u = new FormData(e.currentTarget).get("url") as string; if (u) { set("images", [...p.images, u]); e.currentTarget.reset(); } }}>
             <input name="url" type="url" placeholder="https://... (URL de l'image)" />
-            <button className="btn sm ghost">Ajouter</button>
+            <button className="btn sm ghost">{t("Ajouter")}</button>
           </form>
           <label className="btn sm outline" style={{ alignSelf: "start" }}>
             {uploading ? "Envoi..." : "⬆ Téléverser des images"}
@@ -85,21 +87,21 @@ export function ProductForm({ initial, categories, attributeFields }: Props) {
           </label>
         </div>
         <div className="card stack">
-          <h3 style={{ margin: 0 }}>Options & variantes</h3>
+          <h3 style={{ margin: 0 }}>{t("Options & variantes")}</h3>
           <p className="muted" style={{ margin: 0, fontSize: ".85rem" }}>Ex : Taille = S, M, L · Couleur = Noir, Blanc. Les variantes sont générées automatiquement.</p>
           {p.options.map((o, i) => (
             <div key={i} className="row wrap">
-              <input placeholder="Nom (FR)" value={o.name.fr} style={{ maxWidth: 140 }} onChange={(e) => regenerateVariants(p.options.map((x, j) => (j === i ? { ...x, name: { ...x.name, fr: e.target.value } } : x)))} />
+              <input placeholder={t("Nom (FR)")} value={o.name.fr} style={{ maxWidth: 140 }} onChange={(e) => regenerateVariants(p.options.map((x, j) => (j === i ? { ...x, name: { ...x.name, fr: e.target.value } } : x)))} />
               <input placeholder="الاسم" dir="rtl" value={o.name.ar} style={{ maxWidth: 140 }} onChange={(e) => set("options", p.options.map((x, j) => (j === i ? { ...x, name: { ...x.name, ar: e.target.value } } : x)))} />
-              <input placeholder="Valeurs séparées par des virgules" defaultValue={o.values.join(", ")} style={{ flex: 1, minWidth: 200 }}
+              <input placeholder={t("Valeurs séparées par des virgules")} defaultValue={o.values.join(", ")} style={{ flex: 1, minWidth: 200 }}
                 onBlur={(e) => regenerateVariants(p.options.map((x, j) => (j === i ? { ...x, values: e.target.value.split(",").map((v) => v.trim()).filter(Boolean) } : x)))} />
               <button type="button" className="btn sm ghost" onClick={() => regenerateVariants(p.options.filter((_, j) => j !== i))}>✕</button>
             </div>
           ))}
-          <button type="button" className="btn sm ghost" style={{ alignSelf: "start" }} onClick={() => set("options", [...p.options, { name: { fr: "", ar: "" }, values: [] }])}>+ Ajouter une option</button>
+          <button type="button" className="btn sm ghost" style={{ alignSelf: "start" }} onClick={() => set("options", [...p.options, { name: { fr: "", ar: "" }, values: [] }])}>{t("+ Ajouter une option")}</button>
           {p.variants.length > 0 && (
             <table className="tbl">
-              <thead><tr><th>Variante</th><th>SKU</th><th>Prix (vide = prix de base)</th><th>Stock</th></tr></thead>
+              <thead><tr><th>{t("Variante")}</th><th>{t("SKU")}</th><th>Prix (vide = prix de base)</th><th>{t("Stock")}</th></tr></thead>
               <tbody>{p.variants.map((v, i) => {
                 const upd = (patch: Partial<typeof v>) => set("variants", p.variants.map((x, j) => (j === i ? { ...x, ...patch } : x)));
                 return (
@@ -115,27 +117,27 @@ export function ProductForm({ initial, categories, attributeFields }: Props) {
           )}
         </div>
         <div className="card stack">
-          <h3 style={{ margin: 0 }}>Offres de quantité</h3>
-          <p className="muted" style={{ margin: 0, fontSize: ".85rem" }}>Ex : 2 pièces à 7 000 DA au lieu de 7 800 DA. Affiché comme choix sur la page produit.</p>
+          <h3 style={{ margin: 0 }}>{t("Offres de quantité")}</h3>
+          <p className="muted" style={{ margin: 0, fontSize: ".85rem" }}>{t("Ex : 2 pièces à 7 000 DA au lieu de 7 800 DA. Affiché comme choix sur la page produit.")}</p>
           {p.offers.map((o, i) => {
             const upd = (patch: Partial<typeof o>) => set("offers", p.offers.map((x, j) => (j === i ? { ...x, ...patch } : x)));
             return (
               <div key={i} className="row wrap">
-                <input type="number" min={2} value={o.qty} onChange={(e) => upd({ qty: Number(e.target.value) })} style={{ width: 80 }} title="Quantité" />
-                <span>pièces pour</span>
+                <input type="number" min={2} value={o.qty} onChange={(e) => upd({ qty: Number(e.target.value) })} style={{ width: 80 }} title={t("Quantité")} />
+                <span>{t("pièces pour")}</span>
                 <input type="number" value={o.price} onChange={(e) => upd({ price: Number(e.target.value) })} style={{ width: 120 }} />
-                <span>DA</span>
-                <input placeholder="Libellé FR (ex: Pack duo)" value={o.label.fr} onChange={(e) => upd({ label: { ...o.label, fr: e.target.value } })} style={{ maxWidth: 170 }} />
-                <input placeholder="التسمية AR" dir="rtl" value={o.label.ar} onChange={(e) => upd({ label: { ...o.label, ar: e.target.value } })} style={{ maxWidth: 170 }} />
+                <span>{t("DA")}</span>
+                <input placeholder={t("Libellé FR (ex: Pack duo)")} value={o.label.fr} onChange={(e) => upd({ label: { ...o.label, fr: e.target.value } })} style={{ maxWidth: 170 }} />
+                <input placeholder={t("التسمية AR")} dir="rtl" value={o.label.ar} onChange={(e) => upd({ label: { ...o.label, ar: e.target.value } })} style={{ maxWidth: 170 }} />
                 <button type="button" className="btn sm ghost" onClick={() => set("offers", p.offers.filter((_, j) => j !== i))}>✕</button>
               </div>
             );
           })}
-          <button type="button" className="btn sm ghost" style={{ alignSelf: "start" }} onClick={() => set("offers", [...p.offers, { qty: (p.offers.at(-1)?.qty ?? 1) + 1, price: p.price * ((p.offers.at(-1)?.qty ?? 1) + 1), label: { fr: "", ar: "" } }])}>+ Ajouter une offre</button>
+          <button type="button" className="btn sm ghost" style={{ alignSelf: "start" }} onClick={() => set("offers", [...p.offers, { qty: (p.offers.at(-1)?.qty ?? 1) + 1, price: p.price * ((p.offers.at(-1)?.qty ?? 1) + 1), label: { fr: "", ar: "" } }])}>{t("+ Ajouter une offre")}</button>
         </div>
         {attributeFields.length > 0 && (
           <div className="card stack">
-            <h3 style={{ margin: 0 }}>Attributs personnalisés</h3>
+            <h3 style={{ margin: 0 }}>{t("Attributs personnalisés")}</h3>
             <div className="form-grid">
               {attributeFields.filter((f) => f.enabled).map((f) => (
                 <FieldInput key={f.key} field={{ ...f, required: false }} lang="fr" value={String(p.attributes[f.key] ?? "")} onChange={(v) => set("attributes", { ...p.attributes, [f.key]: v })} chooseLabel="—" />
@@ -146,24 +148,24 @@ export function ProductForm({ initial, categories, attributeFields }: Props) {
       </div>
       <div className="stack">
         <div className="card stack">
-          <div className="field"><label>Statut</label>
-            <select value={p.status} onChange={(e) => set("status", e.target.value as any)}><option value="active">Actif (visible)</option><option value="draft">Brouillon</option><option value="archived">Archivé</option></select>
+          <div className="field"><label>{t("Statut")}</label>
+            <select value={p.status} onChange={(e) => set("status", e.target.value as any)}><option value="active">{t("Actif (visible)")}</option><option value="draft">{t("Brouillon")}</option><option value="archived">{t("Archivé")}</option></select>
           </div>
-          <div className="field"><label>Prix (DA)</label><input type="number" value={p.price} onChange={(e) => set("price", Number(e.target.value))} /></div>
-          <div className="field"><label>Prix barré (DA)</label><input type="number" value={p.compareAt ?? ""} onChange={(e) => set("compareAt", e.target.value === "" ? null : Number(e.target.value))} /></div>
-          <div className="field"><label>Coût d'achat (DA)</label><input type="number" value={p.cost ?? ""} onChange={(e) => set("cost", e.target.value === "" ? null : Number(e.target.value))} /></div>
-          <div className="field"><label>Catégorie</label>
+          <div className="field"><label>{t("Prix (DA)")}</label><input type="number" value={p.price} onChange={(e) => set("price", Number(e.target.value))} /></div>
+          <div className="field"><label>{t("Prix barré (DA)")}</label><input type="number" value={p.compareAt ?? ""} onChange={(e) => set("compareAt", e.target.value === "" ? null : Number(e.target.value))} /></div>
+          <div className="field"><label>{t("Coût d'achat (DA)")}</label><input type="number" value={p.cost ?? ""} onChange={(e) => set("cost", e.target.value === "" ? null : Number(e.target.value))} /></div>
+          <div className="field"><label>{t("Catégorie")}</label>
             <select value={p.categoryId ?? ""} onChange={(e) => set("categoryId", e.target.value || null)}><option value="">—</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
           </div>
-          <div className="field"><label>Slug (URL)</label><input value={p.slug} onChange={(e) => set("slug", slugify(e.target.value))} dir="ltr" /></div>
-          <label className="row" style={{ fontWeight: 500 }}><input type="checkbox" style={{ width: "auto" }} checked={p.trackStock} onChange={(e) => set("trackStock", e.target.checked)} /> Suivre le stock</label>
-          {p.trackStock && !p.variants.length && <div className="field"><label>Stock</label><input type="number" value={p.stock} onChange={(e) => set("stock", Number(e.target.value))} /></div>}
-          <label className="row" style={{ fontWeight: 500 }}><input type="checkbox" style={{ width: "auto" }} checked={p.freeShipping} onChange={(e) => set("freeShipping", e.target.checked)} /> Livraison gratuite</label>
+          <div className="field"><label>{t("Slug (URL)")}</label><input value={p.slug} onChange={(e) => set("slug", slugify(e.target.value))} dir="ltr" /></div>
+          <label className="row" style={{ fontWeight: 500 }}><input type="checkbox" style={{ width: "auto" }} checked={p.trackStock} onChange={(e) => set("trackStock", e.target.checked)} /> {t("Suivre le stock")}</label>
+          {p.trackStock && !p.variants.length && <div className="field"><label>{t("Stock")}</label><input type="number" value={p.stock} onChange={(e) => set("stock", Number(e.target.value))} /></div>}
+          <label className="row" style={{ fontWeight: 500 }}><input type="checkbox" style={{ width: "auto" }} checked={p.freeShipping} onChange={(e) => set("freeShipping", e.target.checked)} /> {t("Livraison gratuite")}</label>
         </div>
         {err && <div className="alert">{err}</div>}
-        {ok && <div className="alert ok">Enregistré ✓</div>}
-        <button className="btn lg" onClick={submit} disabled={pending}>{pending ? "..." : "Enregistrer"}</button>
-        {p.id && <a href={`/products/${p.slug}`} target="_blank" className="btn ghost">Voir dans la boutique ↗</a>}
+        {ok && <div className="alert ok">{t("Enregistré ✓")}</div>}
+        <button className="btn lg" onClick={submit} disabled={pending}>{pending ? "..." : t("Enregistrer")}</button>
+        {p.id && <a href={`/products/${p.slug}`} target="_blank" className="btn ghost">{t("Voir dans la boutique ↗")}</a>}
       </div>
     </div>
   );

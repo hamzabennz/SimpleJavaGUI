@@ -1,3 +1,4 @@
+import { adminT } from "@/lib/admin-lang";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { wilayas } from "@/lib/algeria";
@@ -5,17 +6,18 @@ import { saveDeliveryRates } from "../../actions";
 
 export default async function Delivery() {
   const { tenant } = await requireAdmin("delivery");
+  const { t } = await adminT();
   const rates = await db.deliveryRate.findMany({ where: { tenantId: tenant.id } });
   return (
     <form action={saveDeliveryRates}>
       <div className="row between wrap">
-        <h1>Tarifs de livraison</h1>
-        <button className="btn">Enregistrer</button>
+        <h1>{t("Tarifs de livraison")}</h1>
+        <button className="btn">{t("Enregistrer")}</button>
       </div>
-      <p className="muted">Laissez un prix vide pour désactiver ce mode de livraison dans la wilaya. Mettez 0 pour la livraison gratuite.</p>
+      <p className="muted">{t("Laissez un prix vide pour désactiver ce mode de livraison dans la wilaya. Mettez 0 pour la livraison gratuite.")}</p>
       <div className="card table-wrap" style={{ padding: 0 }}>
         <table className="tbl">
-          <thead><tr><th>Active</th><th>Wilaya</th><th>Domicile (DA)</th><th>Stop desk (DA)</th></tr></thead>
+          <thead><tr><th>{t("Active")}</th><th>{t("Wilaya")}</th><th>{t("Domicile (DA)")}</th><th>{t("Stop desk (DA)")}</th></tr></thead>
           <tbody>
             {wilayas.map((w) => {
               const r = rates.find((x) => x.wilayaCode === w.code);

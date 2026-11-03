@@ -1,3 +1,4 @@
+import { adminT } from "@/lib/admin-lang";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
@@ -6,6 +7,7 @@ import { wilayaName } from "@/lib/algeria";
 
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ d?: string }> }) {
   const { tenant } = await requireAdmin();
+  const { t, lang } = await adminT();
   const days = Number((await searchParams).d) || 30;
   const since = new Date(Date.now() - days * 864e5);
   const where = { tenantId: tenant.id, createdAt: { gte: since } };
@@ -26,36 +28,36 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     ["À confirmer", String(count(["new", "no_answer", "postponed"]))],
     ["Taux de confirmation", pct(confirmedish, decided)],
     ["Taux de livraison", pct(count(["delivered"]), shipped)],
-    ["CA livré", dzd(revenue._sum.total ?? 0)],
+    ["CA livré", dzd(revenue._sum.total ?? 0, lang)],
     ["Panier moyen", total ? dzd(Math.round(byStatus.reduce((a, x) => a + (x._sum.total ?? 0), 0) / total)) : "—"],
   ];
   const statusMeta = (k: string) => tenant.config.orderStatuses.find((s) => s.key === k);
   return (
     <>
       <div className="row between wrap">
-        <h1>Tableau de bord</h1>
-        <div className="tabs">{[1, 7, 30, 90].map((d) => <Link key={d} href={`?d=${d}`} className={d === days ? "on" : ""}>{d === 1 ? "Aujourd'hui" : `${d} jours`}</Link>)}</div>
+        <h1>{t("Tableau de bord")}</h1>
+        <div className="tabs">{[1, 7, 30, 90].map((d) => <Link key={d} href={`?d=${d}`} className={d === days ? "on" : ""}>{d === 1 ? t("Aujourd'hui") : `${d} ${t("jours")}`}</Link>)}</div>
       </div>
-      <div className="kpis">{kpis.map(([l, v]) => <div key={l} className="card kpi"><div className="l">{l}</div><div className="v">{v}</div></div>)}</div>
+      <div className="kpis">{kpis.map(([l, v]) => <div key={l} className="card kpi"><div className="l">{t(l)}</div><div className="v">{v}</div></div>)}</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 16, marginTop: 16 }}>
         <div className="card">
-          <h3 style={{ marginTop: 0 }}>Par statut</h3>
+          <h3 style={{ marginTop: 0 }}>{t("Par statut")}</h3>
           {byStatus.sort((a, b) => b._count - a._count).map((s) => {
             const m = statusMeta(s.status);
             return (
               <div key={s.status} style={{ marginBottom: 8 }}>
-                <div className="row between"><span>{m?.label.fr ?? s.status}</span><b>{s._count}</b></div>
+                <div className="row between"><span>{m?.label[lang] || m?.label.fr || s.status}</span><b>{s._count}</b></div>
                 <div style={{ height: 6, background: "var(--c-border)", borderRadius: 4 }}><div style={{ width: `${(s._count / total) * 100}%`, height: "100%", background: m?.color ?? "#999", borderRadius: 4 }} /></div>
               </div>
             );
           })}
         </div>
         <div className="card">
-          <h3 style={{ marginTop: 0 }}>Top wilayas</h3>
-          <table className="tbl"><tbody>{byWilaya.map((w) => <tr key={w.wilayaCode}><td>{wilayaName(w.wilayaCode)}</td><td style={{ textAlign: "end" }}><b>{w._count}</b></td></tr>)}</tbody></table>
+          <h3 style={{ marginTop: 0 }}>{t("Top wilayas")}</h3>
+          <table className="tbl"><tbody>{byWilaya.map((w) => <tr key={w.wilayaCode}><td>{wilayaName(w.wilayaCode, lang)}</td><td style={{ textAlign: "end" }}><b>{w._count}</b></td></tr>)}</tbody></table>
         </div>
         <div className="card">
-          <h3 style={{ marginTop: 0 }}>Top produits</h3>
+          <h3 style={{ marginTop: 0 }}>{t("Top produits")}</h3>
           <table className="tbl"><tbody>{topItems.map((p) => <tr key={p.name}><td>{p.name}</td><td style={{ textAlign: "end" }}><b>{p._sum.qty}</b></td></tr>)}</tbody></table>
         </div>
       </div>
