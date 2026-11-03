@@ -96,6 +96,11 @@ Object.assign(AR, {
   "Texte long": "نص طويل", "Nombre": "رقم", "Liste": "قائمة", "Choix unique": "اختيار واحد", "Case à cocher": "خانة اختيار",
   "Logo": "الشعار", "Facebook": "فيسبوك", "Instagram": "إنستغرام", "TikTok": "تيك توك",
 });
+Object.assign(AR, {
+  "Aucun produit pour l'instant": "لا توجد منتجات بعد",
+  "Ajoutez votre premier produit ou importez un fichier CSV pour commencer à vendre.": "أضف منتجك الأول أو استورد ملف CSV لتبدأ البيع.",
+  "Partagez le lien de votre boutique pour recevoir vos premières commandes": "شارك رابط متجرك لتستقبل طلباتك الأولى",
+});
 AR["Coût des produits"] = "تكلفة المنتجات";
 AR["Attributs produits personnalisés"] = "خصائص المنتجات المخصصة";
 

@@ -25,7 +25,14 @@ export default async function Products({ searchParams }: { searchParams: Promise
         <Link href="/admin/products/new" className="btn">{t("+ Nouveau produit")}</Link>
       </div>
       <form className="row" style={{ marginBottom: 12 }}><input name="q" defaultValue={q} placeholder={t("Rechercher (slug)")} style={{ maxWidth: 300 }} /><button className="btn sm">{t("OK")}</button></form>
-      <div className="card table-wrap" style={{ padding: 0 }}>
+      {products.length === 0 && !q && (
+        <div className="card stack" style={{ alignItems: "center", textAlign: "center", padding: 40 }}>
+          <b style={{ fontSize: "1.1rem" }}>{t("Aucun produit pour l'instant")}</b>
+          <span className="muted">{t("Ajoutez votre premier produit ou importez un fichier CSV pour commencer à vendre.")}</span>
+          <Link href="/admin/products/new" className="btn">{t("+ Nouveau produit")}</Link>
+        </div>
+      )}
+      <div className="card table-wrap" style={{ padding: 0, display: products.length === 0 && !q ? "none" : undefined }}>
         <table className="tbl">
           <thead><tr><th></th><th>{t("Produit")}</th><th>{t("Catégorie")}</th><th>{t("Prix")}</th><th>{t("Stock")}</th><th>{t("Ventes")}</th><th>{t("Statut")}</th></tr></thead>
           <tbody>{products.map((p) => {

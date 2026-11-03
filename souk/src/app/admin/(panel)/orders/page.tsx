@@ -98,7 +98,7 @@ export default async function Orders({ searchParams }: { searchParams: Promise<{
                 </td>
               </tr>
             ))}
-            {!orders.length && <tr><td colSpan={9} className="muted" style={{ textAlign: "center", padding: 32 }}>{t("Aucune commande")}</td></tr>}
+            {!orders.length && <tr><td colSpan={9} className="muted" style={{ textAlign: "center", padding: 32 }}>{t("Aucune commande")}{!sp.s && !q && <><br /><a href="/" target="_blank" style={{ textDecoration: "underline" }}>{t("Partagez le lien de votre boutique pour recevoir vos premières commandes")}</a></>}</td></tr>}
           </tbody>
         </table>
       </div>
