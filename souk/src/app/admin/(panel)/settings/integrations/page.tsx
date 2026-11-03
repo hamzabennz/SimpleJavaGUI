@@ -17,7 +17,7 @@ export default async function Integrations() {
         webhookBase={webhookBase}
         slug={tenant.slug}
         adapters={Object.values(carriers).map(({ id, name, credentials }) => ({ id, name, credentials }))}
-        initial={{ defaultCarrier: c.integrations.defaultCarrier, carriers: c.integrations.carriers, metaAccessToken: c.tracking.metaAccessToken, tiktokAccessToken: c.tracking.tiktokAccessToken }}
+        initial={{ defaultCarrier: c.integrations.defaultCarrier, carriers: c.integrations.carriers, metaAccessToken: c.tracking.metaAccessToken, tiktokAccessToken: c.tracking.tiktokAccessToken, telegramBotToken: c.notifications.telegram.botToken, telegramChatId: c.notifications.telegram.chatId }}
       />
     </>
   );

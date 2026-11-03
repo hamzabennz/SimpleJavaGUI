@@ -98,6 +98,9 @@ export const SettingsSchema = z.object({
     carriers: z.record(z.record(z.string())).default({}),
   }).default({}),
   footer: z.object({ text: LocalizedSchema.optional() }).default({}),
+  notifications: z.object({
+    telegram: z.object({ botToken: z.string().optional(), chatId: z.string().optional() }).default({}),
+  }).default({}),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 

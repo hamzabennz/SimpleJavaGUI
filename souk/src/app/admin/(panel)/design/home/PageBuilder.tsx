@@ -8,7 +8,7 @@ import type { FieldDef } from "@/lib/forms";
 type Section = { id: string; type: string; enabled: boolean; props: Record<string, any> };
 type Registry = Record<string, { label: { ar: string; fr: string }; fields: FieldDef[]; defaults: Record<string, unknown> }>;
 
-export function PageBuilder({ initial, registry }: { initial: Section[]; registry: Registry }) {
+export function PageBuilder({ initial, registry, slug, previewPath = "/" }: { initial: Section[]; registry: Registry; slug?: string; previewPath?: string }) {
   const t = useAdminT();
   const [sections, setSections] = useState(initial);
   const [open, setOpen] = useState<string | null>(null);
@@ -52,12 +52,12 @@ export function PageBuilder({ initial, registry }: { initial: Section[]; registr
             <button key={k} type="button" className="btn sm ghost" onClick={() => { const id = Math.random().toString(36).slice(2, 8); update([...sections, { id, type: k, enabled: true, props: { ...d.defaults } }]); setOpen(id); }}>+ {d.label.fr}</button>
           ))}
         </div>
-        <button className="btn lg" disabled={pending} onClick={() => start(async () => { await saveHomeSections(sections); setSaved(true); setPreviewKey((k) => k + 1); })}>
+        <button className="btn lg" disabled={pending} onClick={() => start(async () => { await saveHomeSections(sections, slug); setSaved(true); setPreviewKey((k) => k + 1); })}>
           {pending ? "..." : saved ? t("Publié ✓") : t("Enregistrer & publier")}
         </button>
       </div>
       <div className="card" style={{ padding: 0, overflow: "hidden", position: "sticky", top: 16, height: "calc(100vh - 48px)" }}>
-        <iframe key={previewKey} src="/" style={{ width: "100%", height: "100%", border: 0 }} />
+        <iframe key={previewKey} src={previewPath} style={{ width: "100%", height: "100%", border: 0 }} />
       </div>
     </div>
   );

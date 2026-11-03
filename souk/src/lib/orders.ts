@@ -106,6 +106,7 @@ export async function createOrder(tenant: CurrentTenant, form: Record<string, un
         items: { create: priced.map((l) => ({ productId: l.product.id, variantId: l.variant?.id, name: l.name, variant: l.variantLabel, unitPrice: l.unitPrice, qty: l.qty })) },
         events: { create: { type: "status", toStatus: "new", note: "created" } },
       },
+      include: { items: true },
     });
     for (const l of priced) {
       if (!l.product.trackStock) continue;

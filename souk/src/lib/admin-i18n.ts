@@ -62,6 +62,9 @@ const AR: Record<string, string> = {
   "Débloquer": "إلغاء الحظر", "Blacklister": "حظر", "Désactiver": "تعطيل", "Activer": "تفعيل", "Enregistrer & publier": "حفظ ونشر", "Publié ✓": "تم النشر ✓",
   "Commande": "الطلب", "Imprimer": "طباعة", "commande(s)": "طلب", "page": "صفحة",
 };
+AR["Recevez chaque nouvelle commande sur Telegram. Créez un bot avec @BotFather, puis envoyez-lui un message et récupérez votre chat ID."] = "استقبل كل طلب جديد على تيليغرام. أنشئ بوت عبر @BotFather ثم أرسل له رسالة واحصل على chat ID.";
+AR["Nouvelle page"] = "صفحة جديدة";
+AR["Titre (FR) ex: Politique de retour"] = "العنوان (فرنسي) مثال: Politique de retour";
 AR["Coût des produits"] = "تكلفة المنتجات";
 AR["Attributs produits personnalisés"] = "خصائص المنتجات المخصصة";
 

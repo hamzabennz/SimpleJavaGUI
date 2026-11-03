@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { saveIntegrations } from "../../../actions";
 
 type Adapter = { id: string; name: string; credentials: { key: string; label: string; secret?: boolean }[] };
-type Props = { webhookBase: string; slug: string; adapters: Adapter[]; initial: { defaultCarrier: string; carriers: Record<string, Record<string, string>>; metaAccessToken?: string; tiktokAccessToken?: string } };
+type Props = { webhookBase: string; slug: string; adapters: Adapter[]; initial: { defaultCarrier: string; carriers: Record<string, Record<string, string>>; metaAccessToken?: string; tiktokAccessToken?: string; telegramBotToken?: string; telegramChatId?: string } };
 
 export function IntegrationsForm({ webhookBase, slug, adapters, initial }: Props) {
   const t = useAdminT();
@@ -38,6 +38,14 @@ export function IntegrationsForm({ webhookBase, slug, adapters, initial }: Props
             </div>
           </div>
         ))}
+      </div>
+      <div className="card stack">
+        <h3 style={{ margin: 0 }}>Telegram</h3>
+        <p className="muted" style={{ margin: 0, fontSize: ".85rem" }}>{t("Recevez chaque nouvelle commande sur Telegram. Créez un bot avec @BotFather, puis envoyez-lui un message et récupérez votre chat ID.")}</p>
+        <div className="form-grid">
+          <div className="field half"><label>Bot token</label><input dir="ltr" type="password" value={s.telegramBotToken ?? ""} onChange={(e) => setS({ ...s, telegramBotToken: e.target.value })} /></div>
+          <div className="field half"><label>Chat ID</label><input dir="ltr" value={s.telegramChatId ?? ""} onChange={(e) => setS({ ...s, telegramChatId: e.target.value })} /></div>
+        </div>
       </div>
       <div className="card stack">
         <h3 style={{ margin: 0 }}>{t("Événements serveur (Conversions API)")}</h3>

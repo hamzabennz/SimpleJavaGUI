@@ -39,8 +39,13 @@ export async function saveSettings(patch: Record<string, unknown>) {
   return { ok: true };
 }
 
-export async function saveHomeSections(sections: unknown[]) {
+export async function saveHomeSections(sections: unknown[], slug?: string) {
   const { tenant } = await requireAdmin("design");
+  if (slug && slug !== "home") {
+    await db.page.updateMany({ where: { tenantId: tenant.id, slug }, data: { sections: sections as any } });
+    revalidatePath("/", "layout");
+    return { ok: true };
+  }
   const page = await db.page.findFirst({ where: { tenantId: tenant.id, isHome: true } });
   if (page) await db.page.update({ where: { id: page.id }, data: { sections: sections as any } });
   else await db.page.create({ data: { tenantId: tenant.id, slug: "home", isHome: true, title: { ar: "الرئيسية", fr: "Accueil" }, sections: sections as any } });
@@ -231,11 +236,12 @@ export async function shipConfirmed() {
   return shipOrders(ids);
 }
 
-export async function saveIntegrations(patch: { defaultCarrier: string; carriers: Record<string, Record<string, string>>; metaAccessToken?: string; tiktokAccessToken?: string }) {
+export async function saveIntegrations(patch: { defaultCarrier: string; carriers: Record<string, Record<string, string>>; metaAccessToken?: string; tiktokAccessToken?: string; telegramBotToken?: string; telegramChatId?: string }) {
   const { tenant } = await requireAdmin("*");
   const next = mergeSettings(tenant.config, {
     integrations: { defaultCarrier: patch.defaultCarrier, carriers: patch.carriers },
     tracking: { metaAccessToken: patch.metaAccessToken || undefined, tiktokAccessToken: patch.tiktokAccessToken || undefined },
+    notifications: { telegram: { botToken: patch.telegramBotToken || undefined, chatId: patch.telegramChatId || undefined } },
   });
   await db.tenant.update({ where: { id: tenant.id }, data: { settings: next as any } });
   return { ok: true };
@@ -350,4 +356,21 @@ export async function removeDomain(id: string) {
   const { tenant } = await requireAdmin("*");
   await db.domain.deleteMany({ where: { id, tenantId: tenant.id } });
   revalidatePath("/admin/settings/domains");
+}
+
+// ---------- custom pages ----------
+export async function createPage(fd: FormData) {
+  const { tenant } = await requireAdmin("design");
+  const fr = String(fd.get("fr") ?? "").trim(), ar = String(fd.get("ar") ?? "").trim();
+  const slug = (fr || ar).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || `page-${Date.now()}`;
+  if (slug === "home") return;
+  await db.page.create({ data: { tenantId: tenant.id, slug, title: { fr, ar }, sections: [{ id: "t", type: "rich_text", enabled: true, props: { body_fr: "", body_ar: "" } }] } }).catch(() => null);
+  revalidatePath("/admin/design/home");
+  redirect(`/admin/design/home?page=${slug}`);
+}
+export async function deletePage(slug: string) {
+  const { tenant } = await requireAdmin("design");
+  await db.page.deleteMany({ where: { tenantId: tenant.id, slug, isHome: false } });
+  revalidatePath("/", "layout");
+  redirect("/admin/design/home");
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTenant } from "@/lib/tenant";
+import { db } from "@/lib/db";
 import { getLang, getDict, tr } from "@/lib/i18n";
 import { CartProvider, CartCount } from "@/components/store/CartProvider";
 import { Pixels } from "@/components/store/Pixels";
@@ -12,6 +13,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   const t = getDict(lang);
   const s = tenant.config.store;
   const other = tenant.config.locale.enabled.find((l) => l !== lang);
+  const pages = await db.page.findMany({ where: { tenantId: tenant.id, isHome: false }, select: { slug: true, title: true }, orderBy: { slug: "asc" } });
   return (
     <CartProvider storeKey={tenant.slug}>
       <Pixels meta={tenant.config.tracking.metaPixelId} tiktok={tenant.config.tracking.tiktokPixelId} />
@@ -44,6 +46,11 @@ export default async function StoreLayout({ children }: { children: React.ReactN
             {s.tiktok && <a href={s.tiktok}>TikTok</a>}
           </div>
         </div>
+        {pages.length > 0 && (
+          <div className="container row wrap" style={{ marginTop: 12, fontSize: ".85rem" }}>
+            {pages.map((p) => <Link key={p.slug} href={`/p/${p.slug}`}>{tr(p.title, lang)}</Link>)}
+          </div>
+        )}
         <div className="container muted" style={{ marginTop: 12, fontSize: ".8rem" }}>{tr(tenant.config.footer.text, lang) || `© ${new Date().getFullYear()} ${tenant.name}`}</div>
       </footer>
     </CartProvider>
