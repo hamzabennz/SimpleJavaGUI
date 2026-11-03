@@ -45,6 +45,38 @@ export const sectionTypes: Record<string, { label: { ar: string; fr: string }; f
     fields: [],
     defaults: {},
   },
+  testimonials: {
+    label: L("آراء الزبائن", "Témoignages"),
+    fields: [
+      f("title_ar", "text", L("العنوان (عربي)", "Titre (AR)")), f("title_fr", "text", L("العنوان (فرنسي)", "Titre (FR)")),
+      f("items", "textarea", L("اسم|ولاية|رأي في كل سطر", "Nom|Wilaya|Avis (une ligne par avis)")),
+    ],
+    defaults: { title_ar: "آراء زبائننا", title_fr: "Ils nous font confiance", items: "Amina|Alger|Produit conforme et livraison rapide 👍\nYacine|Oran|Très bonne qualité, je recommande" },
+  },
+  countdown: {
+    label: L("عد تنازلي", "Compte à rebours"),
+    fields: [
+      f("title_ar", "text", L("العنوان (عربي)", "Titre (AR)")), f("title_fr", "text", L("العنوان (فرنسي)", "Titre (FR)")),
+      f("ends_at", "date", L("ينتهي في", "Se termine le")),
+      f("hours", "number", L("أو: مدة متجددة بالساعات", "Ou : durée glissante (heures)"), { min: 1, max: 240 }),
+    ],
+    defaults: { title_ar: "⏰ العرض ينتهي قريباً", title_fr: "⏰ L'offre se termine bientôt", hours: 24 },
+  },
+  image_text: {
+    label: L("صورة ونص", "Image + texte"),
+    fields: [
+      f("image", "text", L("رابط الصورة", "URL de l'image")),
+      f("title_ar", "text", L("العنوان (عربي)", "Titre (AR)")), f("title_fr", "text", L("العنوان (فرنسي)", "Titre (FR)")),
+      f("body_ar", "textarea", L("النص (عربي)", "Texte (AR)")), f("body_fr", "textarea", L("النص (فرنسي)", "Texte (FR)")),
+      f("reverse", "checkbox", L("الصورة على الجهة الأخرى", "Image de l'autre côté")),
+    ],
+    defaults: {},
+  },
+  video: {
+    label: L("فيديو", "Vidéo"),
+    fields: [f("youtube", "text", L("رابط يوتيوب", "Lien YouTube"))],
+    defaults: {},
+  },
   faq: {
     label: L("أسئلة شائعة", "FAQ"),
     fields: [

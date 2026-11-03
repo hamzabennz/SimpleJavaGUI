@@ -4,6 +4,7 @@ import type { Section } from "@/lib/settings";
 import type { CurrentTenant } from "@/lib/tenant";
 import { tr, type Lang } from "@/lib/i18n";
 import { ProductCard } from "./ProductCard";
+import { Countdown } from "./Countdown";
 
 const safeHref = (u: unknown) => (typeof u === "string" && /^(\/(?!\/)|https?:\/\/)/.test(u) ? u : "/products");
 const pick = (props: Record<string, any>, key: string, lang: Lang) => props[`${key}_${lang}`] || props[`${key}_ar`] || props[`${key}_fr`] || "";
@@ -68,6 +69,54 @@ async function SectionView({ s, tenant, lang }: { s: Section; tenant: CurrentTen
         <section className="section container">
           <h2>{pick(p, "title", lang)}</h2>
           {lines.map((l, i) => { const [q, a] = l.split("|"); return <details key={i} className="faq"><summary>{q}</summary><p>{a}</p></details>; })}
+        </section>
+      );
+    }
+    case "testimonials": {
+      const items = String(p.items ?? "").split("\n").map((l) => l.split("|")).filter((x) => x.length >= 3);
+      return (
+        <section className="section container">
+          <h2>{pick(p, "title", lang)}</h2>
+          <div className="grid" style={{ ["--grid-cols" as any]: 3 }}>
+            {items.map(([n, w, txt], i) => (
+              <div key={i} className="card stack" style={{ gap: 6 }}>
+                <div style={{ color: "var(--c-accent)" }}>★★★★★</div>
+                <div>“{txt}”</div>
+                <div className="muted" style={{ fontSize: ".85rem" }}>— {n}, {w}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      );
+    }
+    case "countdown":
+      return (
+        <section className="section container">
+          <div className="card" style={{ textAlign: "center", borderColor: "var(--c-danger)" }}>
+            <h2 style={{ marginBottom: 8 }}>{pick(p, "title", lang)}</h2>
+            <Countdown endsAt={p.ends_at ? String(p.ends_at) : undefined} hours={Number(p.hours) || 24} units={lang === "ar" ? ["يوم", "ساعة", "دقيقة", "ثانية"] : ["J", "H", "M", "S"]} />
+          </div>
+        </section>
+      );
+    case "image_text": {
+      const img = typeof p.image === "string" && /^(https?:\/\/|\/uploads\/)/.test(p.image) ? p.image : null;
+      return (
+        <section className="section container">
+          <div className="pdp" style={{ padding: 0, alignItems: "center", direction: p.reverse === "true" || p.reverse === true ? (lang === "ar" ? "ltr" : "rtl") : undefined }}>
+            {img ? <img src={img} alt="" style={{ borderRadius: "var(--radius)", width: "100%" }} /> : <div />}
+            <div style={{ direction: lang === "ar" ? "rtl" : "ltr" }}><h2>{pick(p, "title", lang)}</h2><p className="rich">{pick(p, "body", lang)}</p></div>
+          </div>
+        </section>
+      );
+    }
+    case "video": {
+      const id = String(p.youtube ?? "").match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([\w-]{11})/)?.[1];
+      if (!id) return null;
+      return (
+        <section className="section container">
+          <div style={{ position: "relative", paddingTop: "56.25%", borderRadius: "var(--radius)", overflow: "hidden" }}>
+            <iframe src={`https://www.youtube-nocookie.com/embed/${id}`} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }} allowFullScreen loading="lazy" />
+          </div>
         </section>
       );
     }

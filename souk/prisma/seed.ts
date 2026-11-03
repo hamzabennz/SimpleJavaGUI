@@ -92,6 +92,8 @@ async function main() {
         { id: "s2", type: "trust_badges", enabled: true, props: {} },
         { id: "s3", type: "categories", enabled: true, props: { title_ar: "تسوق حسب القسم", title_fr: "Acheter par catégorie" } },
         { id: "s4", type: "product_grid", enabled: true, props: { title_ar: "وصل حديثاً", title_fr: "Nouveautés", limit: 8 } },
+        { id: "s6", type: "countdown", enabled: true, props: { title_ar: "⏰ العرض ينتهي قريباً", title_fr: "⏰ Offre limitée", hours: 24 } },
+        { id: "s7", type: "testimonials", enabled: true, props: { title_ar: "آراء زبائننا", title_fr: "Ils nous font confiance", items: "Amina|Alger|Produit conforme et livraison rapide 👍\nYacine|Oran|Très bonne qualité, je recommande\nSara|Constantine|Service client au top" } },
         { id: "s5", type: "faq", enabled: true, props: { title_ar: "أسئلة شائعة", title_fr: "Questions fréquentes", items_ar: "كم يستغرق التوصيل؟|من 24 إلى 72 ساعة حسب الولاية.\nهل يمكنني الاستبدال؟|نعم خلال 7 أيام.", items_fr: "Quel est le délai de livraison ?|24 à 72h selon la wilaya.\nPuis-je échanger ?|Oui, sous 7 jours." } },
       ],
     },
@@ -141,11 +143,11 @@ async function main() {
     },
   });
   for (const p of [
-    { slug: "ecouteurs-sans-fil", name: { ar: "سماعات لاسلكية", fr: "Écouteurs sans fil" }, price: 3900, compareAt: 5900, image: img("photo-1590658268037-6bf12165a8df") },
+    { slug: "ecouteurs-sans-fil", name: { ar: "سماعات لاسلكية", fr: "Écouteurs sans fil" }, price: 3900, compareAt: 5900, image: img("photo-1590658268037-6bf12165a8df"), extra: { offers: [{ qty: 2, price: 7000, label: { fr: "Pack duo", ar: "عرض قطعتين" } }, { qty: 3, price: 9900, label: { fr: "Pack famille", ar: "عرض 3 قطع" } }] } },
     { slug: "montre-connectee", name: { ar: "ساعة ذكية", fr: "Montre connectée" }, price: 6900, compareAt: 9900, image: img("photo-1523275335684-37898b6baf30") },
     { slug: "enceinte-bluetooth", name: { ar: "مكبر صوت بلوتوث", fr: "Enceinte Bluetooth" }, price: 4500, compareAt: null, image: img("photo-1608043152269-423dbba4e7e1") },
   ]) {
-    await db.product.create({ data: { tenantId: tech.id, slug: p.slug, name: p.name, price: p.price, compareAt: p.compareAt, images: [p.image], status: "active", description: { fr: "Garantie incluse. Livraison 58 wilayas.", ar: "ضمان مشمول. توصيل 58 ولاية." } } });
+    await db.product.create({ data: { tenantId: tech.id, slug: p.slug, name: p.name, price: p.price, compareAt: p.compareAt, images: [p.image], status: "active", extra: (p as any).extra ?? {}, description: { fr: "Garantie incluse. Livraison 58 wilayas.", ar: "ضمان مشمول. توصيل 58 ولاية." } } });
   }
   await db.page.create({
     data: {
