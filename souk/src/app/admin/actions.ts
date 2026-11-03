@@ -492,3 +492,83 @@ export async function moderateReview(id: string, op: "approve" | "hide" | "delet
   else await db.review.updateMany({ where: { id, tenantId: tenant.id }, data: { approved: op === "approve" } });
   revalidatePath("/admin/reviews");
 }
+
+// ---------- product duplicate & CSV import ----------
+export async function duplicateProduct(id: string) {
+  const { tenant } = await requireAdmin("products");
+  const limit = await checkLimit(tenant.id, "products");
+  if (limit) return;
+  const p = await db.product.findFirst({ where: { id, tenantId: tenant.id }, include: { variants: true } });
+  if (!p) return;
+  let slug = `${p.slug}-copie`, n = 2;
+  while (await db.product.findUnique({ where: { tenantId_slug: { tenantId: tenant.id, slug } } })) slug = `${p.slug}-copie-${n++}`;
+  const { id: _id, createdAt, updatedAt, variants, ...rest } = p;
+  const copy = await db.product.create({
+    data: { ...rest, slug, status: "draft", name: { ...(p.name as any), fr: `${(p.name as any)?.fr ?? ""} (copie)` }, attributes: p.attributes as any, options: p.options as any, extra: p.extra as any, seo: p.seo as any, description: p.description as any,
+      variants: { create: variants.map(({ id, productId, ...v }) => ({ ...v, optionValues: v.optionValues as any })) } },
+  });
+  redirect(`/admin/products/${copy.id}`);
+}
+
+/** CSV columns: name_fr,name_ar,price,compare_at,cost,stock,category,image_urls(| separated),description_fr,description_ar */
+export async function importProducts(_: unknown, fd: FormData) {
+  const { tenant } = await requireAdmin("products");
+  const file = fd.get("file");
+  if (!(file instanceof File) || file.size > 2_000_000) return { error: "Fichier CSV requis (max 2 Mo)" };
+  const rows = parseCsv((await file.text()).replace(/^\uFEFF/, ""));
+  const [head, ...data] = rows;
+  if (!head) return { error: "Fichier vide" };
+  const idx = (k: string) => head.findIndex((h) => h.trim().toLowerCase() === k);
+  const col = (r: string[], k: string) => (idx(k) >= 0 ? (r[idx(k)] ?? "").trim() : "");
+  if (idx("name_fr") < 0 && idx("name_ar") < 0) return { error: "Colonne name_fr ou name_ar manquante" };
+  const { getPlan } = await import("@/lib/plans");
+  const max = (await getPlan(tenant.id)).limits.products ?? Infinity;
+  let count = await db.product.count({ where: { tenantId: tenant.id } });
+  const cats = new Map((await db.category.findMany({ where: { tenantId: tenant.id } })).map((c) => [String((c.name as any)?.fr ?? c.slug).toLowerCase(), c.id]));
+  const slugify = (x: string) => x.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  let created = 0, skipped = 0;
+  for (const r of data) {
+    const fr = col(r, "name_fr"), ar = col(r, "name_ar");
+    const price = Math.round(Number(col(r, "price").replace(/[^\d.]/g, "")));
+    if ((!fr && !ar) || !price) { skipped++; continue; }
+    if (count >= max) { skipped++; continue; }
+    let slug = slugify(fr || ar) || `p-${Date.now()}-${created}`;
+    if (await db.product.findUnique({ where: { tenantId_slug: { tenantId: tenant.id, slug } } })) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
+    const catName = col(r, "category");
+    let categoryId: string | null = null;
+    if (catName) {
+      categoryId = cats.get(catName.toLowerCase()) ?? null;
+      if (!categoryId) {
+        const c = await db.category.create({ data: { tenantId: tenant.id, slug: slugify(catName) || `cat-${Date.now()}`, name: { fr: catName, ar: catName } } }).catch(() => null);
+        if (c) { categoryId = c.id; cats.set(catName.toLowerCase(), c.id); }
+      }
+    }
+    const stock = col(r, "stock");
+    await db.product.create({ data: {
+      tenantId: tenant.id, slug, categoryId, status: "active", price,
+      name: { fr, ar }, description: { fr: col(r, "description_fr"), ar: col(r, "description_ar") },
+      compareAt: Number(col(r, "compare_at")) || null, cost: Number(col(r, "cost")) || null,
+      trackStock: stock !== "", stock: Number(stock) || 0,
+      images: col(r, "image_urls").split("|").map((u) => u.trim()).filter((u) => /^https?:\/\//.test(u)),
+    } });
+    created++; count++;
+  }
+  revalidatePath("/admin/products");
+  return { ok: true, message: `${created} produit(s) importé(s)${skipped ? `, ${skipped} ignoré(s)` : ""}` };
+}
+
+/** Minimal RFC-4180 CSV parser (quotes, escaped quotes, commas/semicolons). */
+function parseCsv(text: string): string[][] {
+  const sep = (text.split("\n")[0].match(/;/g)?.length ?? 0) > (text.split("\n")[0].match(/,/g)?.length ?? 0) ? ";" : ",";
+  const rows: string[][] = []; let row: string[] = [], cell = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (ch === '"') q = false; else cell += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === sep) { row.push(cell); cell = ""; }
+    else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i + 1] === "\n") i++; row.push(cell); if (row.some((c) => c !== "")) rows.push(row); row = []; cell = ""; }
+    else cell += ch;
+  }
+  row.push(cell); if (row.some((c) => c !== "")) rows.push(row);
+  return rows;
+}

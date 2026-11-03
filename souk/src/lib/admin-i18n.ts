@@ -79,6 +79,7 @@ AR["Stock faible"] = "مخزون منخفض";
 Object.assign(AR, { "Mes commandes": "طلباتي", "Assignée à": "مُسندة إلى", "Répartition automatique des nouvelles commandes entre les confirmateurs": "توزيع تلقائي للطلبات الجديدة على المؤكِّدين", "Activée": "مفعّلة", "Désactivée": "معطّلة" });
 Object.assign(AR, { "Avis clients": "آراء الزبائن", "⭐ Avis clients": "⭐ آراء الزبائن", "En attente": "في الانتظار", "Publié": "منشور", "Publier": "نشر", "Masquer": "إخفاء" });
 AR["Proposez un 2e produit à prix spécial dans le formulaire de commande."] = "اقترح منتجاً ثانياً بسعر خاص في استمارة الطلب.";
+Object.assign(AR, { "Importer des produits (CSV)": "استيراد منتجات (CSV)", "Importer": "استيراد", "Télécharger le modèle": "تحميل النموذج", "Dupliquer": "نسخ" });
 AR["Coût des produits"] = "تكلفة المنتجات";
 AR["Attributs produits personnalisés"] = "خصائص المنتجات المخصصة";
 

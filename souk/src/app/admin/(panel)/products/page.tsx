@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth";
 import { dzd } from "@/lib/money";
 import { tr } from "@/lib/i18n";
 import { saveCategory } from "../../actions";
+import { ImportCsv } from "./ImportCsv";
 
 export default async function Products({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { tenant } = await requireAdmin("products");
@@ -41,6 +42,7 @@ export default async function Products({ searchParams }: { searchParams: Promise
           })}</tbody>
         </table>
       </div>
+      <div style={{ marginTop: 16 }}><ImportCsv /></div>
       <h3>{t("Catégories")}</h3>
       <div className="row wrap" style={{ marginBottom: 12 }}>{cats.map((c) => <span key={c.id} className="btn ghost sm">{tr(c.name, "fr")} · {tr(c.name, "ar")}</span>)}</div>
       <form action={saveCategory} className="row wrap card">

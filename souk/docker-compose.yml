@@ -12,6 +12,7 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/souk
       SESSION_SECRET: change-me-please-use-a-long-random-string
+      SECRETS_KEY: change-me-another-long-random-string
       ROOT_DOMAIN: localhost:3000
       DEFAULT_TENANT: demo
       UPLOAD_DIR: /data/uploads

@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { tr } from "@/lib/i18n";
 import { ProductForm } from "../ProductForm";
-import { deleteProduct } from "../../../actions";
+import { deleteProduct, duplicateProduct } from "../../../actions";
 
 export default async function EditProduct({ params }: { params: Promise<{ id: string }> }) {
   const { tenant } = await requireAdmin("products");
@@ -19,7 +19,10 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
     <>
       <div className="row between wrap">
         <h1>{tr(p.name, "fr")}</h1>
+        <div className="row">
+        <form action={duplicateProduct.bind(null, p.id)}><button className="btn sm ghost">⧉ {t("Dupliquer")}</button></form>
         <form action={deleteProduct.bind(null, p.id)}><button className="btn sm danger">{t("Supprimer")}</button></form>
+        </div>
       </div>
       <ProductForm
         categories={cats.map((c) => ({ id: c.id, name: tr(c.name, "fr") }))}
