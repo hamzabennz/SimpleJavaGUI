@@ -72,6 +72,9 @@ Object.assign(AR, {
 });
 AR["Action groupée…"] = "إجراء جماعي…";
 AR["Appliquer à la sélection"] = "تطبيق على المحدد";
+AR["Modifier la commande"] = "تعديل الطلب";
+AR["Frais de livraison"] = "مصاريف التوصيل";
+AR["Annuler"] = "إلغاء";
 AR["Coût des produits"] = "تكلفة المنتجات";
 AR["Attributs produits personnalisés"] = "خصائص المنتجات المخصصة";
 

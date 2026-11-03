@@ -402,3 +402,38 @@ export async function bulkOrders(fd: FormData) {
     revalidatePath("/admin/orders");
   }
 }
+
+// ---------- edit order (during confirmation call) ----------
+export async function editOrder(orderId: string, input: { name: string; phone: string; commune: string; address: string; deliveryType: "home" | "desk"; deliveryFee: number; discount: number; items: { id?: string; productId?: string | null; variantId?: string | null; qty: number; unitPrice: number }[] }) {
+  const { tenant, user } = await requireAdmin("orders");
+  const o = await db.order.findFirst({ where: { id: orderId, tenantId: tenant.id }, include: { items: true } });
+  if (!o) return { error: "not found" };
+  if (["shipped", "delivered", "returned"].includes(o.status)) return { error: "Commande déjà expédiée" };
+  const items = input.items.filter((i) => i.qty > 0);
+  if (!items.length) return { error: "Au moins un produit" };
+  // new lines must reference this tenant's products
+  const newIds = items.filter((i) => !i.id && i.productId).map((i) => i.productId!);
+  const prods = await db.product.findMany({ where: { tenantId: tenant.id, id: { in: newIds } }, include: { variants: true } });
+  if (prods.length !== new Set(newIds).size) return { error: "Produit invalide" };
+  const subtotal = items.reduce((s, i) => s + Math.max(0, Math.round(i.unitPrice)) * Math.round(i.qty), 0);
+  const fee = Math.max(0, Math.round(input.deliveryFee)), discount = Math.max(0, Math.round(input.discount));
+  await db.$transaction(async (tx) => {
+    const keep = items.filter((i) => i.id).map((i) => i.id!);
+    await tx.orderItem.deleteMany({ where: { orderId: o.id, id: { notIn: keep } } });
+    for (const i of items) {
+      if (i.id) await tx.orderItem.updateMany({ where: { id: i.id, orderId: o.id }, data: { qty: Math.round(i.qty), unitPrice: Math.round(i.unitPrice) } });
+      else {
+        const p = prods.find((x) => x.id === i.productId)!;
+        const v = p.variants.find((x) => x.id === i.variantId);
+        await tx.orderItem.create({ data: { orderId: o.id, productId: p.id, variantId: v?.id, name: (p.name as any)?.fr || (p.name as any)?.ar || p.slug, variant: v ? Object.values(v.optionValues as Record<string, string>).join(" / ") : null, unitPrice: Math.round(i.unitPrice), qty: Math.round(i.qty) } });
+      }
+    }
+    await tx.order.update({ where: { id: o.id }, data: {
+      name: input.name, phone: input.phone.replace(/\s/g, ""), commune: input.commune || null, address: input.address || null, deliveryType: input.deliveryType,
+      deliveryFee: fee, discount, subtotal, total: Math.max(0, subtotal - discount + fee),
+      events: { create: { type: "note", note: `Commande modifiée (total ${o.total} → ${Math.max(0, subtotal - discount + fee)} DA)`, userId: user.id } },
+    } });
+  });
+  revalidatePath(`/admin/orders/${o.id}`);
+  return { ok: true };
+}

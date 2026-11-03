@@ -8,6 +8,7 @@ import { wilayaName } from "@/lib/algeria";
 import { tr } from "@/lib/i18n";
 import { StatusButtons } from "../StatusButtons";
 import { ShipButton } from "../ShipButton";
+import { EditOrder } from "./EditOrder";
 import { addOrderNote, updateOrderShipping, toggleBlacklist } from "../../../actions";
 
 export default async function OrderDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -21,12 +22,21 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
   const returned = history.find((h) => h.status === "returned")?._count ?? 0;
   const statuses = tenant.config.orderStatuses.map((s) => ({ key: s.key, label: s.label[lang] || s.label.fr, color: s.color }));
   const label = (k: string | null) => statuses.find((s) => s.key === k)?.label ?? k;
+  const products = ["shipped", "delivered", "returned"].includes(o.status) ? [] : await db.product.findMany({ where: { tenantId: tenant.id, status: "active" }, include: { variants: true } });
   const customFields = tenant.config.checkout.fields.filter((f) => (o.customFields as any)?.[f.key] !== undefined);
   return (
     <>
       <Link href="/admin/orders" className="muted">{t("← Commandes")}</Link>
       <div className="row between wrap"><h1>{t("Commande")} #{o.number}</h1><a className="btn ghost sm" target="_blank" href={`/admin/print?id=${o.id}`}>{t("🖨 Imprimer")}</a></div>
       <div className="card" style={{ marginBottom: 16 }}><StatusButtons orderId={o.id} current={o.status} statuses={statuses} /></div>
+      {!["shipped", "delivered", "returned"].includes(o.status) && (
+        <div style={{ marginBottom: 16 }}>
+          <EditOrder
+            order={{ id: o.id, name: o.name, phone: o.phone, commune: o.commune ?? "", address: o.address ?? "", deliveryType: o.deliveryType === "desk" ? "desk" : "home", deliveryFee: o.deliveryFee, discount: o.discount, items: o.items.map((i) => ({ id: i.id, name: i.name, variant: i.variant, qty: i.qty, unitPrice: i.unitPrice })) }}
+            products={products.map((p) => ({ id: p.id, name: tr(p.name, "fr"), price: p.price, variants: p.variants.map((v) => ({ id: v.id, label: Object.values(v.optionValues as Record<string, string>).join(" / "), price: v.price })) }))}
+          />
+        </div>
+      )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))", gap: 16 }}>
         <div className="stack">
           <div className="card">
