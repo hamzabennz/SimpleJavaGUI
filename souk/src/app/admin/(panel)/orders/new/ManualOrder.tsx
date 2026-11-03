@@ -30,7 +30,7 @@ export function ManualOrder({ products, fields, wilayas, rates }: Props) {
   const effFee = fee === "" ? autoFee ?? 0 : Number(fee);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(340px,1fr))", gap: 16 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(340px,100%),1fr))", gap: 16 }}>
       <div className="card stack">
         <h3 style={{ margin: 0 }}>{t("Client")}</h3>
         <div className="field"><label>{t("Source")}</label>

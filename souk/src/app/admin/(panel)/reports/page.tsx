@@ -65,7 +65,7 @@ export default async function Reports({ searchParams }: { searchParams: Promise<
         </div>
         <div className="row between muted" style={{ fontSize: ".75rem" }}><span>{series[0]?.[0]}</span><span>{series.at(-1)?.[0]}</span></div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(380px,1fr))", gap: 16, marginTop: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(380px,100%),1fr))", gap: 16, marginTop: 16 }}>
         <div className="card table-wrap">
           <h3 style={{ marginTop: 0 }}>{t("Par produit (livrées)")}</h3>
           <table className="tbl"><thead><tr><th>{t("Produit")}</th><th>{t("Qté")}</th><th>{t("CA")}</th><th>{t("Marge")}</th></tr></thead>

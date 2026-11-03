@@ -46,7 +46,7 @@ export function ProductForm({ initial, categories, attributeFields, allProducts 
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,2fr) minmax(260px,1fr)", gap: 16 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,2fr) minmax(min(260px,100%),1fr)", gap: 16 }}>
       <div className="stack">
         <div className="card stack">
           <div className="form-grid">

@@ -28,7 +28,7 @@ export function FormBuilder({ initial, target, extra }: { initial: FieldDef[]; t
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) minmax(280px,1fr)", gap: 16 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.4fr) minmax(min(280px,100%),1fr)", gap: 16 }}>
       <div className="stack">
         {fields.map((f, i) => (
           <div key={f.key} className={`card stack ${f.enabled ? "" : "off"}`} style={{ opacity: f.enabled ? 1 : 0.6 }}>

@@ -42,7 +42,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
           />
         </div>
       )}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(320px,100%),1fr))", gap: 16 }}>
         <div className="stack">
           <div className="card">
             <h3 style={{ marginTop: 0 }}>{t("Client")}</h3>

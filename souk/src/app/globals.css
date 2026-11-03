@@ -119,7 +119,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:.92rem}
 .admin aside .grp{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin:14px 12px 4px}
 .admin main{padding:24px;min-width:0}
 .admin h1{margin:0 0 16px;font-size:1.5rem}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:12px}
 .kpi .v{font-size:1.6rem;font-weight:800}
 .kpi .l{font-size:.8rem;color:var(--c-muted)}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}

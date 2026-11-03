@@ -22,7 +22,7 @@ export default function Signup() {
     );
   }
   return (
-    <div style={{ minHeight: "100vh", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))" }} dir="ltr">
+    <div style={{ minHeight: "100vh", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(320px,100%),1fr))" }} dir="ltr">
       <div style={{ background: "var(--c-primary)", color: "var(--c-primary-text)", padding: "48px 32px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <h1 style={{ fontSize: "2.4rem", margin: "0 0 12px" }}>Lancez votre boutique en ligne en 2 minutes</h1>
         <p style={{ fontSize: "1.1rem", opacity: 0.9 }}>متجرك الإلكتروني جاهز في دقيقتين</p>

@@ -85,7 +85,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           <span className="btn sm">{t("Voir")} →</span>
         </Link>
       )}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 16, marginTop: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(300px,100%),1fr))", gap: 16, marginTop: 16 }}>
         <div className="card">
           <h3 style={{ marginTop: 0 }}>{t("Par statut")}</h3>
           {byStatus.sort((a, b) => b._count - a._count).map((s) => {
