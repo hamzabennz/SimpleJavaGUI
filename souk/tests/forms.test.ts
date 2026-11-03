@@ -66,3 +66,12 @@ describe("quantity offers", () => {
     expect(offerUnitPrice({}, 2)).toBeNull();
   });
 });
+
+describe("theme sanitization", () => {
+  it("rejects CSS/HTML injection in colors and fonts", () => {
+    const s = SettingsSchema.parse({ theme: { colors: { primary: "red}</style><script>alert(1)</script>" }, fontAr: "x\"></style>" } });
+    expect(s.theme.colors.primary).toBe("#0f766e");
+    expect(s.theme.fontAr).toBe("Cairo");
+    expect(themeToCss(s.theme)).not.toContain("<");
+  });
+});

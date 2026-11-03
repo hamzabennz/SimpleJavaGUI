@@ -6,23 +6,26 @@
 import { z } from "zod";
 import { FieldDefSchema, LocalizedSchema, type FieldDef } from "./forms";
 
+const color = (d: string) => z.string().regex(/^#[0-9a-fA-F]{3,8}$/).catch(d).default(d);
+const font = (d: string) => z.string().regex(/^[A-Za-z0-9 ]{2,40}$/).catch(d).default(d);
+
 export const ThemeSchema = z.object({
   preset: z.string().default("classic"),
   colors: z.object({
-    primary: z.string().default("#0f766e"),
-    primaryText: z.string().default("#ffffff"),
-    accent: z.string().default("#f59e0b"),
-    background: z.string().default("#f8fafc"),
-    surface: z.string().default("#ffffff"),
-    text: z.string().default("#0f172a"),
-    muted: z.string().default("#64748b"),
-    border: z.string().default("#e2e8f0"),
-    danger: z.string().default("#dc2626"),
-    success: z.string().default("#16a34a"),
+    primary: color("#0f766e"),
+    primaryText: color("#ffffff"),
+    accent: color("#f59e0b"),
+    background: color("#f8fafc"),
+    surface: color("#ffffff"),
+    text: color("#0f172a"),
+    muted: color("#64748b"),
+    border: color("#e2e8f0"),
+    danger: color("#dc2626"),
+    success: color("#16a34a"),
   }).default({}),
   radius: z.number().min(0).max(32).default(12),
-  fontAr: z.string().default("Cairo"),
-  fontLatin: z.string().default("Inter"),
+  fontAr: font("Cairo"),
+  fontLatin: font("Inter"),
   buttonStyle: z.enum(["solid", "outline", "pill"]).default("solid"),
   productCard: z.enum(["simple", "bordered", "overlay"]).default("bordered"),
   gridColumns: z.number().int().min(2).max(5).default(4),

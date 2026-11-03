@@ -14,10 +14,18 @@ import { checkLimit } from "@/lib/plans";
 import { createOrder, OrderError, type CartLine } from "@/lib/orders";
 
 // ---------- auth ----------
+const loginFails = new Map<string, { n: number; until: number }>();
 export async function login(_: unknown, fd: FormData) {
   const email = String(fd.get("email") ?? "").toLowerCase().trim();
+  const f = loginFails.get(email);
+  if (f && f.n >= 5 && f.until > Date.now()) return { error: "Trop de tentatives. Réessayez dans 15 minutes." };
   const user = await db.user.findUnique({ where: { email } });
-  if (!user || !(await bcrypt.compare(String(fd.get("password") ?? ""), user.passwordHash))) return { error: "Email ou mot de passe incorrect" };
+  if (!user || !(await bcrypt.compare(String(fd.get("password") ?? ""), user.passwordHash))) {
+    const cur = loginFails.get(email);
+    loginFails.set(email, { n: (cur && cur.until > Date.now() ? cur.n : 0) + 1, until: Date.now() + 15 * 60_000 });
+    return { error: "Email ou mot de passe incorrect" };
+  }
+  loginFails.delete(email);
   const tenant = await getTenant();
   if (!user.isSuperAdmin && tenant && !(await db.membership.findUnique({ where: { userId_tenantId: { userId: user.id, tenantId: tenant.id } } }))) {
     return { error: "Ce compte n'a pas accès à cette boutique" };

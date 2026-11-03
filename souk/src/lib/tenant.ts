@@ -14,7 +14,9 @@ export const getTenant = cache(async () => {
   const h = await headers();
   const host = (h.get("x-forwarded-host") ?? h.get("host") ?? "").toLowerCase();
   const root = (process.env.ROOT_DOMAIN ?? "localhost:3000").toLowerCase();
-  const override = (await cookies()).get("store")?.value;
+  // ?store= override is a dev/preview helper only (or explicitly enabled)
+  const allowOverride = process.env.NODE_ENV !== "production" || process.env.ALLOW_STORE_OVERRIDE === "1";
+  const override = allowOverride ? (await cookies()).get("store")?.value : undefined;
 
   let tenant = null;
   if (override) tenant = await db.tenant.findUnique({ where: { slug: override } });

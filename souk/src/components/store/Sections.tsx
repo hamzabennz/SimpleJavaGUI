@@ -5,6 +5,7 @@ import type { CurrentTenant } from "@/lib/tenant";
 import { tr, type Lang } from "@/lib/i18n";
 import { ProductCard } from "./ProductCard";
 
+const safeHref = (u: unknown) => (typeof u === "string" && /^(\/(?!\/)|https?:\/\/)/.test(u) ? u : "/products");
 const pick = (props: Record<string, any>, key: string, lang: Lang) => props[`${key}_${lang}`] || props[`${key}_ar`] || props[`${key}_fr`] || "";
 
 export async function Sections({ sections, tenant, lang }: { sections: Section[]; tenant: CurrentTenant; lang: Lang }) {
@@ -16,11 +17,11 @@ async function SectionView({ s, tenant, lang }: { s: Section; tenant: CurrentTen
   switch (s.type) {
     case "hero":
       return (
-        <section className={`hero ${p.align === "center" ? "center" : ""}`} style={p.image ? { backgroundImage: `url(${p.image})` } : undefined}>
+        <section className={`hero ${p.align === "center" ? "center" : ""}`} style={typeof p.image === "string" && /^(https?:\/\/|\/uploads\/)[^"'()\s]+$/.test(p.image) ? { backgroundImage: `url("${p.image}")` } : undefined}>
           <div className="container">
             <h1>{pick(p, "title", lang)}</h1>
             <p style={{ fontSize: "1.15rem", maxWidth: 640, marginInline: p.align === "center" ? "auto" : undefined }}>{pick(p, "subtitle", lang)}</p>
-            {pick(p, "cta", lang) && <Link href={p.cta_link || "/products"} className="btn lg" style={{ marginTop: 12, background: "var(--c-accent)", borderColor: "var(--c-accent)" }}>{pick(p, "cta", lang)}</Link>}
+            {pick(p, "cta", lang) && <Link href={safeHref(p.cta_link)} className="btn lg" style={{ marginTop: 12, background: "var(--c-accent)", borderColor: "var(--c-accent)" }}>{pick(p, "cta", lang)}</Link>}
           </div>
         </section>
       );
